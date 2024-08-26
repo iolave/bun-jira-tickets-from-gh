@@ -2,7 +2,7 @@ import { Command } from "commander";
 import PackageJson from "../package.json"
 import GithubClient from "../services/github";
 import { env } from "bun";
-import { ExitStatus } from "typescript";
+import util from "./util";
 
 type ProgramGlobalOptions = {
 	ghToken?: string,
@@ -20,13 +20,9 @@ listOrganizationProjectsCmd.action(async () => {
 
 	if (!ghToken) ghToken = env["GITHUB_TOKEN"];
 
-	if (!ghToken) {
-		console.log(`Either set "GITHUB_TOKEN" environment variable or the --gh-token option`);
-		process.exit(ExitStatus.DiagnosticsPresent_OutputsSkipped)
-	}
+	if (!ghToken) return util.error(`either set "GITHUB_TOKEN" environment variable or the --gh-token option`);
 
 	const args = listOrganizationProjectsCmd.opts<{ org: string }>();
-
 
 	const gh = new GithubClient(ghToken);
 	const [project, err] = await gh.projects.listOrganizationProjects(args.org);
@@ -35,7 +31,7 @@ listOrganizationProjectsCmd.action(async () => {
 
 	console.log(JSON.stringify(project))
 
-	process.exit(ExitStatus.Success);
+	return util.success();
 });
 
 program.addCommand(listOrganizationProjectsCmd);
