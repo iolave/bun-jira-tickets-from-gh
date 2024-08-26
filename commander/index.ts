@@ -4,25 +4,31 @@ import GithubClient from "../services/github";
 import { env } from "bun";
 import { ExitStatus } from "typescript";
 
+type ProgramGlobalOptions = {
+	ghToken?: string,
+}
 const program = new Command(PackageJson.name)
-
 program.version(PackageJson.version);
 program.description("Generate Jira tickets from github project");
+program.option("--gh-token <TOKEN>", "GitHub token");
 
 const listOrganizationProjectsCmd = new Command("listOrganizationProjects");
 listOrganizationProjectsCmd.description("List GitHub projects for a given organization");
 listOrganizationProjectsCmd.requiredOption("--org <ORG>", "GitHub organization");
-
 listOrganizationProjectsCmd.action(async () => {
-	const args = listOrganizationProjectsCmd.opts<{ org: string }>();
-	const token = env["GITHUB_TOKEN"];
+	var { ghToken } = listOrganizationProjectsCmd.optsWithGlobals<ProgramGlobalOptions>();
 
-	if (!token) {
-		console.log(`Please set "GITHUB_TOKEN" environment variable`);
+	if (!ghToken) ghToken = env["GITHUB_TOKEN"];
+
+	if (!ghToken) {
+		console.log(`Either set "GITHUB_TOKEN" environment variable or the --gh-token option`);
 		process.exit(ExitStatus.DiagnosticsPresent_OutputsSkipped)
 	}
 
-	const gh = new GithubClient(token);
+	const args = listOrganizationProjectsCmd.opts<{ org: string }>();
+
+
+	const gh = new GithubClient(ghToken);
 	const [project, err] = await gh.projects.listOrganizationProjects(args.org);
 
 	if (err) throw err;
