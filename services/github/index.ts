@@ -9,5 +9,7 @@ export default class GithubClient {
 
 	public projects = {
 		listOrganizationProjects: (org: string) => projects.listOrganizationProjects(this.token, org),
+		getProjectFields: (id: string) => projects.getProjectFields(this.token, id),
+		getProjectItems: (id: string) => projects.getProjectItems(this.token, id),
 	}
 }
