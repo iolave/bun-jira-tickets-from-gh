@@ -1,7 +1,8 @@
 import { ExitStatus } from "typescript";
 
-function error(msg: string): never {
-	console.log(`error: ${msg}`);
+function error(err: string | Error): never {
+	if (err instanceof Error) console.log(`error: ${err.message}`)
+	else console.log(`error: ${err}`);
 	process.exit(ExitStatus.DiagnosticsPresent_OutputsSkipped);
 }
 

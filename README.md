@@ -15,6 +15,15 @@ jira-tickets-from-gh --help
 ```
 
 ## Usage
+For the cli to work properly, you will need a GitHub project with the following fields:
+
+- `Title`: Title for the task.
+- `Jira`: `YES` or `NO` choice field.
+- `Jira URL`: text field to store jira url.
+- `Status`: `Todo`, `In Progress`, `Done` choice field.
+- `Estimate`: Number field.
+- `Repository`: Default field for repository info.
+
 ```
 Usage: jira-tickets-from-gh [options] [command]
 
@@ -27,6 +36,7 @@ Options:
 
 Commands:
   listOrganizationProjects [options]  List GitHub projects for a given organization
+  sync [options]                      Sync GitHub project tickets with Jira
   help [command]                      display help for command
 ```
 
