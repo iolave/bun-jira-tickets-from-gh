@@ -1,8 +1,11 @@
 {
-  "name": "jtfgh",
+  "name": "jira-tickets-from-gh",
   "version": "0.1.0",
   "module": "index.ts",
   "type": "module",
+  "bin": {
+    "jira-tickets-from-gh": "index.ts"
+  },
   "devDependencies": {
     "@types/bun": "latest"
   },
