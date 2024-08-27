@@ -6,15 +6,16 @@ import { env } from "bun";
 import GithubClient from "../services/github";
 
 type SyncOptions = {
-	projectId: string,
+	ghProjectId: string,
 	ghAssigneesMap: Record<string, string | undefined>,
+	jiraProjectKey: string,
 }
 
 const syncCmdName = "sync";
 const syncCmd = new Command(syncCmdName);
 syncCmd.description("sync GitHub project tickets with Jira");
 
-const mapGhAssigneeOption = new Option("--gh-assignees-map [GH_USER:JIRA_USER,...]", "map of GitHub users to Jira ones");
+const mapGhAssigneeOption = new Option("--gh-assignees-map <GH_USER:JIRA_USER,...>", "map of GitHub users to Jira ones");
 mapGhAssigneeOption.argParser<SyncOptions["ghAssigneesMap"]>((value, _prev) => {
 	const map: Record<string, string | undefined> = {}
 	const commaSplitted = value.split(",");
@@ -28,7 +29,8 @@ mapGhAssigneeOption.argParser<SyncOptions["ghAssigneesMap"]>((value, _prev) => {
 	return map;
 });
 syncCmd.addOption(mapGhAssigneeOption);
-syncCmd.requiredOption("--gh-project-id [id]", "Github project ID");
+syncCmd.requiredOption("--gh-project-id <STRING>", "Github project ID");
+syncCmd.requiredOption("--jira-project-key <STRING>", "Jira project KEY");
 syncCmd.action(async () => {
 	const logName = "syncCmd.action";
 	var { ghToken, verbose } = syncCmd.optsWithGlobals<ProgramGlobalOptions>();
@@ -61,7 +63,7 @@ syncCmd.action(async () => {
 	const gh = new GithubClient(ghToken);
 	logger.debug(logName, "created new github client");
 
-	const [projectFields, projectFieldsErr] = await gh.projects.getProjectFields(args.projectId);
+	const [projectFields, projectFieldsErr] = await gh.projects.getProjectFields(args.ghProjectId);
 	if (projectFieldsErr) throw projectFieldsErr;
 	logger.debug(logName, "retrieved project fields", projectFields);
 
@@ -76,7 +78,7 @@ syncCmd.action(async () => {
 		if (!rf.select && pf.options) return util.error(`field "${rf.name}" is of type select`);
 	}
 
-	const [projectItems, projectItemsErr] = await gh.projects.getProjectItems(args.projectId);
+	const [projectItems, projectItemsErr] = await gh.projects.getProjectItems(args.ghProjectId);
 	if (projectItemsErr !== null) return util.error(projectItemsErr);
 	logger.debug(logName, "retrieved project items", projectItems);
 
