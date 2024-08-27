@@ -5,12 +5,17 @@ import logger from "../helpers/logger";
 import { env } from "bun";
 import GithubClient from "../services/github";
 
+type SyncOptions = {
+	projectId: string,
+	ghAssigneesMap: Record<string, string | undefined>,
+}
+
 const syncCmdName = "sync";
 const syncCmd = new Command(syncCmdName);
 syncCmd.description("sync GitHub project tickets with Jira");
 
 const mapGhAssigneeOption = new Option("--gh-assignees-map [GH_USER:JIRA_USER,...]", "map of GitHub users to Jira ones");
-mapGhAssigneeOption.argParser<Record<string, string | undefined>>((value, _prev) => {
+mapGhAssigneeOption.argParser<SyncOptions["ghAssigneesMap"]>((value, _prev) => {
 	const map: Record<string, string | undefined> = {}
 	const commaSplitted = value.split(",");
 
@@ -23,7 +28,7 @@ mapGhAssigneeOption.argParser<Record<string, string | undefined>>((value, _prev)
 	return map;
 });
 syncCmd.addOption(mapGhAssigneeOption);
-syncCmd.requiredOption("--project-id [id]", "Github project ID")
+syncCmd.requiredOption("--gh-project-id [id]", "Github project ID");
 syncCmd.action(async () => {
 	const logName = "syncCmd.action";
 	var { ghToken, verbose } = syncCmd.optsWithGlobals<ProgramGlobalOptions>();
@@ -50,7 +55,7 @@ syncCmd.action(async () => {
 	];
 	logger.debug(logName, "required fields", { requiredFields });
 
-	const args = syncCmd.opts<{ projectId: string, ghAssigneesMap: Record<string, string | undefined> }>();
+	const args = syncCmd.opts<SyncOptions>();
 	logger.debug(logName, "parsed args", { args });
 
 	const gh = new GithubClient(ghToken);
