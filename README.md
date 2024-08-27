@@ -27,16 +27,17 @@ For the cli to work properly, you will need a GitHub project with the following 
 ```
 Usage: jira-tickets-from-gh [options] [command]
 
-Generate Jira tickets from github project
+generate Jira tickets from github project
 
 Options:
   -V, --version                       output the version number
   --gh-token <TOKEN>                  GitHub token
+  -v --verbose                        verbose mode
   -h, --help                          display help for command
 
 Commands:
-  listOrganizationProjects [options]  List GitHub projects for a given organization
-  sync [options]                      Sync GitHub project tickets with Jira
+  listOrganizationProjects [options]  list GitHub projects for a given organization
+  sync [options]                      sync GitHub project tickets with Jira
   help [command]                      display help for command
 ```
 
