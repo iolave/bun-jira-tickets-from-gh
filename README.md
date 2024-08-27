@@ -30,16 +30,15 @@ Usage: jira-tickets-from-gh [options] [command]
 generate Jira tickets from github project
 
 Options:
-  -V, --version                       output the version number
-  --gh-token <TOKEN>                  GitHub token
-  -v --verbose                        verbose mode
-  -h, --help                          display help for command
+  -V, --version       output the version number
+  --gh-token <TOKEN>  GitHub token
+  -v --verbose        verbose mode
+  -h, --help          display help for command
 
 Commands:
-  listOrganizationProjects [options]  list GitHub projects for a given organization
-  sync [options]                      sync GitHub project tickets with Jira
-  help [command]                      display help for command
-```
+  github-projects     GitHub projects utilities
+  sync [options]      sync GitHub project tickets with Jira
+  help [command]      display help for command```
 
 ## Environment variables
 - `GITHUB_TOKEN`
