@@ -11,6 +11,9 @@ const logger = {
 	error: (functionName: string, msg: string, info?: Record<string, any>) => {
 		console.log(`[ERROR]\t${functionName.padEnd(40, " ")}\t${msg.padEnd(60, " ")}\t${!info ? "" : JSON.stringify(info)}`);
 	},
+	warn: (functionName: string, msg: string, info?: Record<string, any>) => {
+		console.log(`[WARN]\t${functionName.padEnd(40, " ")}\t${msg.padEnd(60, " ")}\t${!info ? "" : JSON.stringify(info)}`);
+	},
 	enableVerboseMode: () => { verbose = true },
 	verbose: () => verbose,
 };

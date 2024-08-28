@@ -11,11 +11,29 @@ type SyncOptions = {
 	ghAssigneesMap?: Record<string, string | undefined>,
 	jiraProjectKey: string,
 	jiraSubdomain: string,
+	transitionsToWip?: number[],
+	transitionsToDone?: number[],
 }
 
 const syncCmdName = "sync";
 const syncCmd = new Command(syncCmdName);
 syncCmd.description("sync GitHub project tickets with Jira");
+
+const transitionsToWipOption = new Option("--transitions-to-wip <NUMBER,...>", "list of jira issue transitions in order to have a wip task");
+transitionsToWipOption.argParser<SyncOptions["transitionsToWip"]>((value, _prev) => {
+	const [option, error] = util.numberArrayFromString(value, ",");
+	if (error) return util.error(error);
+	return option
+});
+syncCmd.addOption(transitionsToWipOption);
+
+const transitionsToDoneOption = new Option("--transitions-to-done <NUMBER,...>", "list of jira issue transitions in order to have a done task");
+transitionsToWipOption.argParser<SyncOptions["transitionsToWip"]>((value, _prev) => {
+	const [option, error] = util.numberArrayFromString(value, ",");
+	if (error) return util.error(error);
+	return option
+});
+syncCmd.addOption(transitionsToDoneOption);
 
 const mapGhAssigneeOption = new Option("--gh-assignees-map <GH_USER:JIRA_USER,...>", "map of GitHub users to Jira ones (email)");
 mapGhAssigneeOption.argParser<SyncOptions["ghAssigneesMap"]>((value, _prev) => {
@@ -140,6 +158,25 @@ syncCmd.action(async () => {
 
 		if (updateUrlErr) logger.error(logName, "unable to update jira url in github", updateUrlErr);
 		else logger.info(logName, "updated jira url in github", { updateId: updateUrlRes.data.updateProjectV2ItemFieldValue.clientMutationId });
+
+		// UPDATE TASK STATUS
+		var transitions: number[] = [];
+		if (pi.status === "In Progress" && args.transitionsToWip)
+			transitions = args.transitionsToWip;
+		else if (pi.status === "Done" && args.transitionsToWip && args.transitionsToDone)
+			transitions = [...args.transitionsToWip, ...args.transitionsToDone];
+
+		// TODO: detect next transition instead of trying em all
+		for (const t of transitions) {
+			const err = await jira.issues.transition(createRes.issueKey, t);
+			if (!err) {
+				logger.info(logName, `transitioned task "${createRes.issueKey}" with transition "${t}"`);
+				continue;
+			}
+
+			logger.error(logName, `unable to transition task "${createRes.issueKey}" with transition "${t}"`);
+			continue;
+		}
 
 	}
 });
