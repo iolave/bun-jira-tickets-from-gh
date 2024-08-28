@@ -1,6 +1,37 @@
 import promises, { type SafePromise } from "../../helpers/promises";
 import sync from "../../helpers/sync";
 
+const buildTransitionIssueBody = (transitionId: number) => JSON.stringify({
+	transition: { id: `${transitionId}` }
+});
+
+async function transitionIssue(token: string, subdomain: string, issueKey: string, transitionId: number): Promise<Error | undefined> {
+	const headers = new Headers();
+	headers.append("authorization", `Basic ${token}`);
+	headers.append("content-type", `application/json`);
+
+	const requestInit: RequestInit = {
+		method: "POST",
+		headers,
+		body: buildTransitionIssueBody(transitionId),
+	};
+
+	const url = new URL(`https://${subdomain}.atlassian.net/rest/api/3/issue/${issueKey}/transitions`);
+
+	const [fetchResult, fetchErr] = await promises.safePromise(fetch(url, requestInit));
+
+	if (fetchErr) return fetchErr;
+
+	if (fetchResult.status !== 204) {
+		const [resText, textErr] = await promises.safePromise(fetchResult.text());
+
+		if (textErr) return textErr;
+
+		return new Error(resText);
+	}
+	return undefined;
+}
+
 function buildIssueBody(projectKey: string, summary: string, issueName: string, accountId: string, content: any): string {
 	return JSON.stringify({
 		fields: {
@@ -16,7 +47,6 @@ function buildIssueBody(projectKey: string, summary: string, issueName: string, 
 			summary,
 		}
 	});
-
 }
 
 async function create(token: string, subdomain: string, projectKey: string, summary: string, issueName: string, accountId: string, content: any): SafePromise<{ issueId: string, issueKey: string, issueUrl: string }> {
@@ -58,6 +88,9 @@ async function create(token: string, subdomain: string, projectKey: string, summ
 	}, null]
 }
 
+
+
 export default {
 	create,
+	transitionIssue,
 }
