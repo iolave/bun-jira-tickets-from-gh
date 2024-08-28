@@ -19,7 +19,7 @@ async function searchByEmail(token: string, subdomain: string, email: string): S
 
 	if (err) return [null, err];
 
-	if (fetchResult.status !== 201) {
+	if (fetchResult.status !== 200) {
 		const [resText, textErr] = await promises.safePromise(fetchResult.text());
 
 		if (textErr) return [null, textErr];

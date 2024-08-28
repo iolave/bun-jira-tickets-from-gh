@@ -8,7 +8,7 @@ import JiraClient from "../services/jira";
 
 type SyncOptions = {
 	ghProjectId: string,
-	ghAssigneesMap: Record<string, string | undefined>,
+	ghAssigneesMap?: Record<string, string | undefined>,
 	jiraProjectKey: string,
 	jiraSubdomain: string,
 }
@@ -17,13 +17,13 @@ const syncCmdName = "sync";
 const syncCmd = new Command(syncCmdName);
 syncCmd.description("sync GitHub project tickets with Jira");
 
-const mapGhAssigneeOption = new Option("--gh-assignees-map <GH_USER|JIRA_USER,...>", "map of GitHub users to Jira ones");
+const mapGhAssigneeOption = new Option("--gh-assignees-map <GH_USER:JIRA_USER,...>", "map of GitHub users to Jira ones (email)");
 mapGhAssigneeOption.argParser<SyncOptions["ghAssigneesMap"]>((value, _prev) => {
 	const map: Record<string, string | undefined> = {}
 	const commaSplitted = value.split(",");
 
 	for (const pair of commaSplitted) {
-		const pairSplitted = pair.split("|");
+		const pairSplitted = pair.split(":");
 		if (pairSplitted.length !== 2) util.error(`"${mapGhAssigneeOption.name()}" option does not match format "${mapGhAssigneeOption.flags.split(" ").at(1)}"`);
 
 		map[`${pairSplitted[0]}`] = pairSplitted[1];
@@ -101,6 +101,12 @@ syncCmd.action(async () => {
 	const jira = new JiraClient(jiraToken, args.jiraSubdomain);
 	logger.debug(logName, "created new jira client");
 
+	if (args.ghAssigneesMap) for (const [ghUser, jiraEmail] of Object.entries(args.ghAssigneesMap)) {
+		const [userRes, userErr] = await jira.users.searchByEmail(jiraEmail!);
+		if (userErr) return util.error(userErr);
+		args.ghAssigneesMap[ghUser] = userRes.accountId;
+	}
+
 	for (const pi of projectItems) {
 		logger.debug(logName, "validating project item properties", { item: pi });
 		if (pi.title === null) return util.error(`missing task title`);
@@ -113,7 +119,9 @@ syncCmd.action(async () => {
 		}
 
 		logger.info(logName, "creating jira issue", { title: pi.title });
-		const accountId = pi.assignee ? args.ghAssigneesMap[pi.assignee] ?? "" : "";
+		var accountId = "";
+		if (args.ghAssigneesMap) accountId = pi.assignee ? args.ghAssigneesMap[pi.assignee] ?? "" : "";
+
 		const [createRes, createErr] = await jira.issues.create(args.jiraProjectKey, pi.title ?? "", accountId, pi.jiraIssueType);
 		if (createErr) {
 			logger.error(logName, "error in issue creation", createErr);
