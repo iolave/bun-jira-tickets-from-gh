@@ -1,11 +1,11 @@
-# jtfgh
+# Sync Jira and GitHub projects
 
 > [!WARNING]
 > All versions released prior to `v1.0.0` are to be considered [breaking changes](https://semver.org/#how-do-i-know-when-to-release-100) (I'll try my best to not push breaking changes btw).
 To install dependencies:
 
 ```bash
-bun install -g https://github.com/iolave/bun-jira-tickets-from-gh
+bun install -g https://github.com/iolave/bun-jira-tickets-from-gh#latest
 ```
 
 To run:
