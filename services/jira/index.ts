@@ -10,9 +10,7 @@ export default class JiraClient {
 	}
 
 	public issues = {
-		create: (projectKey: string, summary: string, assigneeEmail: string) => {
-			const issueName = "Historia Técnica";
-
+		create: (projectKey: string, summary: string, assigneeEmail: string, issueName: string) => {
 			return issues.create(this.token, this.subdomain, projectKey, summary, issueName, assigneeEmail, [])
 		},
 	}
