@@ -18,7 +18,7 @@ jira-tickets-from-gh --help
 For the cli to work properly, you will need a GitHub project with the following fields:
 
 - `Title`: Title for the task.
-- `Jira`: `YES` or `NO` choice field.
+- `Jira issue type`: choice field with available jira issue types.
 - `Jira URL`: text field to store jira url.
 - `Status`: `Todo`, `In Progress`, `Done` choice field.
 - `Estimate`: Number field.
@@ -30,18 +30,20 @@ Usage: jira-tickets-from-gh [options] [command]
 generate Jira tickets from github project
 
 Options:
-  -V, --version       output the version number
-  --gh-token <TOKEN>  GitHub token
-  -v --verbose        verbose mode
-  -h, --help          display help for command
+  -V, --version         output the version number
+  --gh-token <TOKEN>    GitHub token
+  --jira-token <TOKEN>  Jira token
+  -v --verbose          verbose mode
+  -h, --help            display help for command
 
 Commands:
-  github-projects     GitHub projects utilities
-  sync [options]      sync GitHub project tickets with Jira
-  help [command]      display help for command```
+  github-projects       GitHub projects utilities
+  sync [options]        sync GitHub project tickets with Jira
+  help [command]        display help for command
 
 ## Environment variables
 - `GITHUB_TOKEN`
-
+- `JIRA_TOKEN`: Basic authorization token, to form it `base64([JIRA_ACCOUNT_ID]:[JIRA_API_KEY])`
+```
 
 This project was created using `bun init` in bun v1.1.24. [Bun](https://bun.sh) is a fast all-in-one JavaScript runtime.
