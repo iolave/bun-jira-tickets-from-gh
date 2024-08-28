@@ -1,4 +1,5 @@
 import issues from "./issues";
+import users from "./users";
 
 export default class JiraClient {
 	private token: string;
@@ -7,6 +8,10 @@ export default class JiraClient {
 	constructor(token: string, subdomain: string) {
 		this.token = token;
 		this.subdomain = subdomain;
+	}
+
+	public users = {
+		searchByEmail: (email: string) => users.searchByEmail(this.token, this.subdomain, email),
 	}
 
 	public issues = {
