@@ -18,6 +18,11 @@ const logger = {
 	verbose: () => verbose,
 };
 
+export function safeString(s: string): string {
+	if (s.length === 0) return "";
+	return `${s[0]}********${s[-1]}`;
+}
+
 export var verbose: boolean = false;
 
 export default logger;
