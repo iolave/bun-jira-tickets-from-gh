@@ -20,7 +20,7 @@ const logger = {
 
 export function safeString(s: string): string {
 	if (s.length === 0) return "";
-	return `${s[0]}********${s[-1]}`;
+	return `${s[0]}********${s[s.length - 1] ?? "a"}`;
 }
 
 export var verbose: boolean = false;
