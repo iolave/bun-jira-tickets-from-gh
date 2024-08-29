@@ -1,5 +1,8 @@
+import logger, { safeString } from "../../helpers/logger";
 import promises, { type SafePromise } from "../../helpers/promises";
 import sync from "../../helpers/sync";
+
+const logName = "jira.users";
 
 type JiraUser = { accountId: string, accountType: string, emailAddress: string, displayName: string };
 async function searchByEmail(token: string, subdomain: string, email: string): SafePromise<JiraUser> {
@@ -15,6 +18,7 @@ async function searchByEmail(token: string, subdomain: string, email: string): S
 	const url = new URL(`https://${subdomain}.atlassian.net/rest/api/3/user/search`);
 	url.searchParams.set("query", email);
 
+	logger.debug(logName, "sending searchByEmail request", { token: safeString(token), subdomain, email });
 	const [fetchResult, err] = await promises.safePromise(fetch(url, requestInit));
 
 	if (err) return [null, err];
