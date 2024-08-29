@@ -28,7 +28,7 @@ transitionsToWipOption.argParser<SyncOptions["transitionsToWip"]>((value, _prev)
 syncCmd.addOption(transitionsToWipOption);
 
 const transitionsToDoneOption = new Option("--transitions-to-done <NUMBER,...>", "list of jira issue transitions in order to have a done task");
-transitionsToWipOption.argParser<SyncOptions["transitionsToWip"]>((value, _prev) => {
+transitionsToDoneOption.argParser<SyncOptions["transitionsToWip"]>((value, _prev) => {
 	const [option, error] = util.numberArrayFromString(value, ",");
 	if (error) return util.error(error);
 	return option
