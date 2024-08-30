@@ -14,6 +14,7 @@ type SyncOptions = {
 	jiraSubdomain: string,
 	transitionsToWip?: number[],
 	transitionsToDone?: number[],
+	sleepTime?: number,
 }
 
 const syncCmdName = "sync";
@@ -50,6 +51,7 @@ mapGhAssigneeOption.argParser<SyncOptions["ghAssigneesMap"]>((value, _prev) => {
 	return map;
 });
 syncCmd.addOption(mapGhAssigneeOption);
+syncCmd.option("--sleep-time <ms>", "sleep time between executions. If not specified the program will run once");
 syncCmd.requiredOption("--gh-project-id <STRING>", "Github project ID");
 syncCmd.requiredOption("--jira-project-key <STRING>", "Jira project KEY");
 syncCmd.requiredOption("--jira-subdomain <STRING>", "Jira subdomain");
@@ -98,57 +100,69 @@ syncCmd.action(async () => {
 		args.ghAssigneesMap[ghUser] = userRes.accountId;
 	}
 
-	const [items, itemsErr] = project.getItems();
-	if (itemsErr) return util.error(itemsErr);
+	do {
+		const [items, itemsErr] = project.getItems();
+		if (itemsErr) return util.error(itemsErr);
 
-	for (const pi of items) {
-		// TODO: if task already have a jira issue sync issue and task
-		if (pi.jiraUrl) {
-			logger.debug(logName, "skipping creation, issue already created", { title: pi.title, url: pi.jiraUrl });
+		for (const pi of items) {
+			// TODO: if task already have a jira issue sync issue and task
+			if (pi.jiraUrl) {
+				logger.debug(logName, "skipping creation, issue already created", { title: pi.title, url: pi.jiraUrl });
 
-			continue;
-		}
-
-		logger.info(logName, "creating jira issue", { title: pi.title });
-		var accountId = "";
-		if (args.ghAssigneesMap) accountId = pi.assignee ? args.ghAssigneesMap[pi.assignee] ?? "" : "";
-
-		const [createRes, createErr] = await jira.issues.create({
-			projectKey: args.jiraProjectKey,
-			summary: pi.title,
-			accountId,
-			issueName: pi.jiraIssueType
-		});
-		if (createErr) {
-			logger.error(logName, "error in issue creation", createErr);
-			continue;
-		}
-
-		logger.info(logName, "created issue", { url: createRes.issueUrl });
-		// UPDATE URL FIELD
-		const updateUrlErr = await project.updateJiraUrl(pi.id, createRes.issueUrl);
-		if (updateUrlErr) logger.error(logName, "unable to update jira url in github", updateUrlErr);
-
-		// UPDATE TASK STATUS
-		var transitions: number[] = [];
-		if (pi.status === "In Progress" && args.transitionsToWip)
-			transitions = args.transitionsToWip;
-		else if (pi.status === "Done" && args.transitionsToWip && args.transitionsToDone)
-			transitions = [...args.transitionsToWip, ...args.transitionsToDone];
-
-		// TODO: detect next transition instead of trying em all
-		for (const t of transitions) {
-			const err = await jira.issues.transition(createRes.issueKey, t);
-			if (!err) {
-				logger.info(logName, `transitioned task "${createRes.issueKey}" with transition "${t}"`);
 				continue;
 			}
 
-			logger.error(logName, `unable to transition task "${createRes.issueKey}" with transition "${t}"`);
-			continue;
+			logger.info(logName, "creating jira issue", { title: pi.title });
+			var accountId = "";
+			if (args.ghAssigneesMap) accountId = pi.assignee ? args.ghAssigneesMap[pi.assignee] ?? "" : "";
+
+			const [createRes, createErr] = await jira.issues.create({
+				projectKey: args.jiraProjectKey,
+				summary: pi.title,
+				accountId,
+				issueName: pi.jiraIssueType
+			});
+			if (createErr) {
+				logger.error(logName, "error in issue creation", createErr);
+				continue;
+			}
+
+			logger.info(logName, "created issue", { url: createRes.issueUrl });
+			// UPDATE URL FIELD
+			const updateUrlErr = await project.updateJiraUrl(pi.id, createRes.issueUrl);
+			if (updateUrlErr) logger.error(logName, "unable to update jira url in github", updateUrlErr);
+
+			// UPDATE TASK STATUS
+			var transitions: number[] = [];
+			if (pi.status === "In Progress" && args.transitionsToWip)
+				transitions = args.transitionsToWip;
+			else if (pi.status === "Done" && args.transitionsToWip && args.transitionsToDone)
+				transitions = [...args.transitionsToWip, ...args.transitionsToDone];
+
+			// TODO: detect next transition instead of trying em all
+			for (const t of transitions) {
+				const err = await jira.issues.transition(createRes.issueKey, t);
+				if (!err) {
+					logger.info(logName, `transitioned task "${createRes.issueKey}" with transition "${t}"`);
+					continue;
+				}
+
+				logger.error(logName, `unable to transition task "${createRes.issueKey}" with transition "${t}"`);
+				continue;
+			}
+
 		}
 
-	}
+		if (args.sleepTime && args.sleepTime >= 0) {
+			logger.info(logName, `sleeping for ${args.sleepTime}ms...`)
+			await new Promise(res => setTimeout(() => res(undefined), args.sleepTime))
+
+
+			logger.info(logName, `refreshing github project items`, { projectId: args.ghProjectId })
+			const refreshErr = await project.refreshProjectItems();
+			if (refreshErr) logger.error(logName, "got an error when refreshing github project items", refreshErr);
+		}
+	} while (args.sleepTime && args.sleepTime >= 0);
 });
 
 export default syncCmd;
