@@ -1,6 +1,5 @@
+import { safeErr, safePromise, safeRes, type SafePromise } from "../../helpers/functions";
 import logger, { safeString } from "../../helpers/logger";
-import promises, { type SafePromise } from "../../helpers/promises";
-import sync from "../../helpers/sync";
 
 const logName = "jira.users";
 
@@ -19,29 +18,26 @@ async function searchByEmail(token: string, subdomain: string, email: string): S
 	url.searchParams.set("query", email);
 
 	logger.debug(logName, "sending searchByEmail request", { token: safeString(token), subdomain, email });
-	const [fetchResult, err] = await promises.safePromise(fetch(url, requestInit));
+	const [fetchResult, err] = await safePromise(fetch(url, requestInit));
 
-	if (err) return [null, err];
+	if (err) return safeErr(err);
 
 	if (fetchResult.status !== 200) {
-		const [resText, textErr] = await promises.safePromise(fetchResult.text());
+		const [resText, textErr] = await safePromise(fetchResult.text());
 
-		if (textErr) return [null, textErr];
+		if (textErr) return safeErr(textErr);
 
-		const [json, parseErr] = sync.safeFunc(JSON.parse, [resText]);
-		if (parseErr) return [null, new Error("Unable to create new issue", { cause: parseErr })];
-
-		return [null, json]
+		return safeErr(new Error(resText));
 	}
 
-	const [fetchJson, fetchJsonErr] = await promises.safePromise<JiraUser[]>(fetchResult.json());
+	const [fetchJson, fetchJsonErr] = await safePromise<JiraUser[]>(fetchResult.json());
 
-	if (fetchJsonErr) return [null, fetchJsonErr];
+	if (fetchJsonErr) return safeErr(fetchJsonErr);
 	const user = fetchJson.at(0);
 
-	if (!user) return [null, new Error(`user not found for email address "${email}"`)];
+	if (!user) return safeErr(new Error(`user not found for email address "${email}"`));
 
-	return [user, null];
+	return safeRes(user);
 }
 
 export default {

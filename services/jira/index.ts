@@ -21,8 +21,13 @@ export default class JiraClient {
 	}
 
 	public issues = {
-		create: (projectKey: string, summary: string, assigneeEmail: string, issueName: string) => {
-			return issues.create(this.token, this.subdomain, projectKey, summary, issueName, assigneeEmail, [])
+		create: (args: { projectKey: string, summary: string, accountId?: string, issueName: string }) => {
+			return issues.create({
+				token: this.token,
+				subdomain: this.subdomain,
+				...args,
+				content: []
+			});
 		},
 		transition: (issueKey: string, transitionId: number) => issues.transitionIssue(this.token, this.subdomain, issueKey, transitionId),
 	}

@@ -5,6 +5,7 @@ import logger from "../helpers/logger";
 import { env } from "bun";
 import GithubClient from "../services/github";
 import JiraClient from "../services/jira";
+import GithubProject from "../business-logic/github-project";
 
 type SyncOptions = {
 	ghProjectId: string,
@@ -55,7 +56,10 @@ syncCmd.requiredOption("--jira-subdomain <STRING>", "Jira subdomain");
 syncCmd.action(async () => {
 	const logName = "syncCmd.action";
 	var { ghToken, verbose, jiraToken } = syncCmd.optsWithGlobals<ProgramGlobalOptions>();
+	const args = syncCmd.opts<SyncOptions>();
 	if (verbose) logger.enableVerboseMode();
+
+	logger.debug(logName, "parsed args", { args });
 
 	if (!ghToken) {
 		logger.debug(logName, "unable to find github token in options");
@@ -77,43 +81,12 @@ syncCmd.action(async () => {
 		return util.error(`either set "JIRA_TOKEN" environment variable or the --jira-token option`)
 	}
 
-	const requiredFields = {
-		"Estimate": { select: false },
-		"Jira issue type": { select: true },
-		"Jira URL": { select: false },
-		"Status": { select: true },
-		"Assignees": { select: false },
-		"Title": { select: false },
-		"Repository": { select: false },
-	} as const;
-
-	logger.debug(logName, "required fields", { requiredFields });
-
-	const args = syncCmd.opts<SyncOptions>();
-	logger.debug(logName, "parsed args", { args });
-
 	const gh = new GithubClient(ghToken);
 	logger.debug(logName, "created new github client");
 
-	const [projectFields, projectFieldsErr] = await gh.projects.getProjectFields(args.ghProjectId);
-	if (projectFieldsErr) throw projectFieldsErr;
-	logger.debug(logName, "retrieved project fields", projectFields);
-
-	for (const rf of Object.entries(requiredFields)) {
-		const [name, opts] = rf;
-		logger.debug(logName, "validating project field type", { field: name });
-		const filter = projectFields?.filter(pf => pf.name === name);
-		if (!filter) return util.error(`field "${name}" not found in GitHub project`);
-		if (filter.length === 0) return util.error(`field "${name}" not found in GitHub project`);
-		if (filter.length !== 1) return util.error(`field "${name}" is duplicated GitHub project`);
-		const pf = filter[0];
-		if (opts.select && !pf.options) return util.error(`field "${name}" is not of type select`);
-		if (!opts.select && pf.options) return util.error(`field "${name}" is of type select`);
-	}
-
-	const [projectItems, projectItemsErr] = await gh.projects.getProjectItems(args.ghProjectId);
-	if (projectItemsErr !== null) return util.error(projectItemsErr);
-	logger.debug(logName, "retrieved project items", projectItems);
+	const project = new GithubProject(gh);
+	const initErr = await project.init(args.ghProjectId);
+	if (initErr) return util.error(initErr);
 
 	/* THIS IS WIP CODE TO TEST THE JIRA ISSUE CREATION!!!!! */
 	const jira = new JiraClient(jiraToken, args.jiraSubdomain);
@@ -125,13 +98,13 @@ syncCmd.action(async () => {
 		args.ghAssigneesMap[ghUser] = userRes.accountId;
 	}
 
-	for (const pi of projectItems) {
-		logger.debug(logName, "validating project item properties", { item: pi });
-		if (pi.title === null) return util.error(`missing task title`);
+	const [items, itemsErr] = project.getItems();
+	if (itemsErr) return util.error(itemsErr);
 
+	for (const pi of items) {
 		// TODO: if task already have a jira issue sync issue and task
 		if (pi.jiraUrl) {
-			logger.info(logName, "skipping creation, issue already created", { title: pi.title, url: pi.jiraUrl });
+			logger.debug(logName, "skipping creation, issue already created", { title: pi.title, url: pi.jiraUrl });
 
 			continue;
 		}
@@ -140,7 +113,12 @@ syncCmd.action(async () => {
 		var accountId = "";
 		if (args.ghAssigneesMap) accountId = pi.assignee ? args.ghAssigneesMap[pi.assignee] ?? "" : "";
 
-		const [createRes, createErr] = await jira.issues.create(args.jiraProjectKey, pi.title ?? "", accountId, pi.jiraIssueType);
+		const [createRes, createErr] = await jira.issues.create({
+			projectKey: args.jiraProjectKey,
+			summary: pi.title,
+			accountId,
+			issueName: pi.jiraIssueType
+		});
 		if (createErr) {
 			logger.error(logName, "error in issue creation", createErr);
 			continue;
@@ -148,16 +126,8 @@ syncCmd.action(async () => {
 
 		logger.info(logName, "created issue", { url: createRes.issueUrl });
 		// UPDATE URL FIELD
-		const urlFieldId = projectFields.filter(pf => pf.name === "Jira URL").at(0)?.id ?? "";
-		const [updateUrlRes, updateUrlErr] = await gh.projects.updateProjectItemField({
-			projectId: args.ghProjectId,
-			itemId: pi.id,
-			fieldId: urlFieldId,
-			newValue: { text: createRes.issueUrl }
-		});
-
+		const updateUrlErr = await project.updateJiraUrl(pi.id, createRes.issueUrl);
 		if (updateUrlErr) logger.error(logName, "unable to update jira url in github", updateUrlErr);
-		else logger.info(logName, "updated jira url in github", { updateId: updateUrlRes.data.updateProjectV2ItemFieldValue.clientMutationId });
 
 		// UPDATE TASK STATUS
 		var transitions: number[] = [];

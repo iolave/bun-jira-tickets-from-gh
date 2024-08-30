@@ -1,6 +1,4 @@
-import type { SafePromise } from "../../helpers/promises";
-import promises from "../../helpers/promises";
-import sync from "../../helpers/sync";
+import { safeErr, safePromise, safeRes, type SafePromise } from "../../helpers/functions";
 import projects from "./projects";
 import type { IProjectItemUpdateField } from "./update-project-item-field.query";
 
@@ -39,27 +37,20 @@ export async function sendGqlRequest<T>(token: string, query: string): SafePromi
 
 	const url = new URL("https://api.github.com/graphql");
 
-	const [fetchResult, err] = await promises.safePromise(fetch(url, requestInit));
+	const [fetchResult, err] = await safePromise(fetch(url, requestInit));
 
-	if (err) return [null, err];
+	if (err) return safeErr(err);
 
 	if (fetchResult.status !== 200) {
-		const [resText, textErr] = await promises.safePromise(fetchResult.text());
+		const [resText, textErr] = await safePromise(fetchResult.text());
 
-		if (textErr) return [null, textErr];
-
-		const [json, parseErr] = sync.safeFunc(JSON.parse, [resText]);
-
-		if (parseErr) return [null, new Error(`Failed to send request to "${url.toString()}"`, { cause: parseErr })];
-
-		return [null, json]
-
-
+		if (textErr) return safeErr(textErr);
+		return safeErr(new Error(resText));
 	}
 
-	const [fetchJson, fetchJsonErr] = await promises.safePromise<Partial<T>>(fetchResult.json());
-	if (fetchJsonErr) return [null, fetchJsonErr];
+	const [fetchJson, fetchJsonErr] = await safePromise<Partial<T>>(fetchResult.json());
+	if (fetchJsonErr) return safeErr(fetchJsonErr);
 
-	return [fetchJson, null];
+	return safeRes(fetchJson);
 }
 
