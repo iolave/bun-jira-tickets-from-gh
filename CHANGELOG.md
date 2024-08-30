@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `--transitions-to-wip` option to specify Jira cloud transitions required in order to transition a task to a "Dev in progress" state.
 - Added `--transitions-to-done` option to specify Jira cloud transitions required in order to transition a task to a "Done" state.
 
+### Changed
+- Log entries now have date and time.
+
 ## [v0.1.0]
 
 ### Added
