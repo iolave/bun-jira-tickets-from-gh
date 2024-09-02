@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [unreleased]
 ### Added
+- Docker config files.
 - Added `--transitions-to-wip` option to specify Jira cloud transitions required in order to transition a task to a "Dev in progress" state.
 - Added `--transitions-to-done` option to specify Jira cloud transitions required in order to transition a task to a "Done" state.
 - Added `--sleep-time` that enables new executions tiggered when the sleep time passes by.

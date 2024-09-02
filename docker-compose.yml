@@ -1,0 +1,39 @@
+services:
+  jira-tickets-from-gh:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      network: host
+    image: jira-tickets-from-gh
+    # network mode should not be host, for some reason my docker containers
+    # dont have internat access :(
+    network_mode: host
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+    environment:
+      GH_TOKEN: /run/secrets/github_token
+      GH_PROJECT_ID: ${GH_PROJECT_ID}
+      GH_USERS_MAP: ${GH_USERS_MAP}
+      JIRA_TOKEN: /run/secrets/jira_token
+      JIRA_SUBDOMAIN: ${JIRA_SUBDOMAIN}
+      JIRA_PROJECT_KEY: ${JIRA_PROJECT_KEY}
+      JIRA_WIP_TRANSITIONS: ${JIRA_WIP_TRANSITIONS}
+      JIRA_DONE_TRANSITIONS: ${JIRA_DONE_TRANSITIONS}
+      SLEEP_TIME: ${SLEEP_TIME}
+    secrets:
+      - jira_token
+      - github_token
+secrets:
+  jira_token:
+    environment: "JIRA_TOKEN"
+  github_token:
+    environment: "GITHUB_TOKEN"
+

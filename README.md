@@ -1,21 +1,15 @@
 # Sync Jira and GitHub projects
+I was forced by my job to use Jira to keep track of tasks, but I kept forgetting to update status within Jira. Most of time im in GitHub and it's just easier to have issues and close them via PR's.
+
+...so i built this tool for myself and hopefully, it will help you too.
 
 > [!WARNING]
 > All versions released prior to `v1.0.0` are to be considered [breaking changes](https://semver.org/#how-do-i-know-when-to-release-100) (I'll try my best to not push breaking changes btw).
 To install dependencies:
 
-```bash
-bun install -g https://github.com/iolave/bun-jira-tickets-from-gh#latest
-```
-
-To run:
-
-```bash
-jira-tickets-from-gh --help
-```
-
-## Usage
-For the cli to work properly, you will need a GitHub project with the following fields:
+## Pre-requisites for running the CLI
+### A GitHub project with required fields
+Make sure you have a GitHub project with the following fields:
 
 - `Title`: Title for the task.
 - `Jira issue type`: choice field with available jira issue types.
@@ -24,59 +18,93 @@ For the cli to work properly, you will need a GitHub project with the following 
 - `Estimate`: Number field.
 - `Repository`: Default field for repository info.
 
-### Get a jira token
-- Get a jira api token from your jira cloud account.
-- Form a base64 encoded string (basic auth) out of your jira cloud account and the api token: `base64(EMAIL:API_TOKEN)`.
-
 ### Get the id of your github project
 #### Organization projects
 The cli is shipped with a utility that's going to help us search our GitHub project id.
 ```bash
-jira-tickets-from-gh --gh-token=GH_TOKEN github-projects listOrganizationProjects --org=YOU_ORG
+jira-tickets-from-gh --gh-token=GH_TOKEN github-projects listOrganization --org=YOU_ORG
 ```
 
 #### User projects
-NOT YET AVAIALBLE
+_NOT YET AVAIALBLE_
 
-### Help command
+### Get a Jira cloud token
+- Get a jira api token from your jira cloud account.
+- Form a base64 encoded string (basic auth) out of your jira cloud account and the api token: `base64(EMAIL:API_TOKEN)`.
+
+### Environment variables
+- `GITHUB_TOKEN`: Your GitHub token. If the project you're trying to sync is in an organization, make sure the token have access to it.
+- `JIRA_TOKEN`: Basic authorization token, to form it `base64([JIRA_CLOUD_ACCOUNT]:[JIRA_API_KEY])`
+
+## Using the CLI to sync projects
+Install the CLI
 ```bash
-Usage: jira-tickets-from-gh [options] [command]
-
-generate Jira tickets from github project
-
-Options:
-  -V, --version         output the version number
-  --gh-token <TOKEN>    GitHub token
-  --jira-token <TOKEN>  Jira token
-  -v --verbose          verbose mode
-  -h, --help            display help for command
-
-Commands:
-  github-projects       GitHub projects utilities
-  sync [options]        sync GitHub project tickets with Jira
-  help [command]        display help for command
-
-## Environment variables
-- `GITHUB_TOKEN`
-- `JIRA_TOKEN`: Basic authorization token, to form it `base64([JIRA_ACCOUNT_ID]:[JIRA_API_KEY])`
+bun install -g jira-tickets-from-gh
 ```
 
-### Example sync command
-_The `--jira-project-key` is the short name of the jira cloud project._
+Use `jira-tickets-from-gh sync [Options]` command to sync a GitHub project with a Jira cloud project.
 
+| Option                                      | Required | Description |
+|---------------------------------------------|----------|-------------|
+|`--transitions-to-wip <NUMBER,...>`          | `false`  | list of jira issue transitions in order to have a wip task |
+|`--transitions-to-done <NUMBER,...>`         | `false`  | list of jira issue transitions in order to have a done task |
+|`--gh-assignees-map <GH_USER:JIRA_USER,...>` | `false`  | map of GitHub users to Jira ones (email) |
+|`--sleep-time <ms>`			      | `false`  | sleep time between executions. If not specified the program will run once |
+|`--gh-project-id <STRING>`                   | `true`   | Github project ID |
+|`--jira-project-key <STRING>`                | `true`   | Jira project KEY |
+|`--jira-subdomain <STRING>`		      | `true`   | Jira subdomain |
+|`--help`				      | `false`  | display help for command |
+
+### Example
+*Using environment variables*
 ```bash
-jira-tickets-from-gh --gh-token=GH_TOKEN --jira-token=JIRA_TOKEN sync \
+export GITHUB_TOKEN=token
+export JIRA_TOKEN=token
+jira-tickets-from-gh sync \
   --gh-project-id=PROJECT_ID \
   --jira-project-key=PROJECT_KEY \ 
   --jira-subdomain=MYSUBDOMAIN \
-  --gh-assignees-map=iolave:my-private@email.com
+  --gh-assignees-map=iolave:abc@abc.com
 ```
 
-*execution example*
+*Passing tokens via the cli*
 ```bash
-[INFO]	syncCmd.action                          	creating jira issue                                         	{"title":"TEST: bun-jira-tickets-from-gh"}
-[INFO]	syncCmd.action                          	created issue                                               	{"url":"https://mfhnet.atlassian.net/browse/TEST3-100"}
-[INFO]	syncCmd.action                          	updated jira url in github                                  	{"updateId":"0b2f5b21-d3b7-4580-9327-6a57fa1924db"}
+export GITHUB_TOKEN=token
+export JIRA_TOKEN=token
+jira-tickets-from-gh --gh-token=TOKEN --jira-token=TOKEN sync \
+  --gh-project-id=PROJECT_ID \
+  --jira-project-key=PROJECT_KEY \ 
+  --jira-subdomain=MYSUBDOMAIN \
+  --gh-assignees-map=iolave:abc@abc.com
 ```
 
-This project was created using `bun init` in bun v1.1.24. [Bun](https://bun.sh) is a fast all-in-one JavaScript runtime.
+*Execution example*
+```
+[2024-08-01 10:45:46][INFO]	syncCmd.action                          	creating jira issue                                         	{"title":"TEST: bun-jira-tickets-from-gh"}
+[2024-08-01 10:45:47][INFO]	syncCmd.action                          	created issue                                               	{"url":"https://mfhnet.atlassian.net/browse/TEST3-112"}
+```
+
+## Running using Docker
+### Environment variables
+| Env                   | Maps to option          |
+|-----------------------|-------------------------|
+| GITHUB_TOKEN          | `--gh-token` |
+| GH_PROJECT_ID         | `--gh-project-id` |
+| GH_USERS_MAP          | `--gh-assignees-map` |
+| JIRA_TOKEN            | `--jira-token` |
+| JIRA_SUBDOMAIN        | `--jira-subdomain` |
+| JIRA_PROJECT_KEY      | `--jira-project-key` |
+| JIRA_WIP_TRANSITIONS  | `--transitions-to-wip` |
+| JIRA_DONE_TRANSITIONS | `--transitions-to-done` |
+| SLEEP_TIME            | `--sleep-time` |
+
+### Build
+```bash
+docker compose build
+```
+
+### Run
+```bash
+docker compose --env-file=path/to/env up -d
+```
+
