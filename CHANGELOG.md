@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [unreleased]
+
+## [v0.2.0]
 ### Added
 - Docker config files.
 - Added `--transitions-to-wip` option to specify Jira cloud transitions required in order to transition a task to a "Dev in progress" state.
@@ -21,5 +23,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Sync command that creates Jira tickets from GitHub project cards.
 - GitHub utility to list organization projects in order to extract a project id.
 
-[unreleased]: https://github.com/iolave/bun-jira-tickets-from-gh/compare/v0.1.0...HEAD
+[unreleased]: https://github.com/iolave/bun-jira-tickets-from-gh/compare/v0.2.0...staging
+[v0.2.0]: https://github.com/iolave/bun-jira-tickets-from-gh/releases/tag/v0.2.0
 [v0.1.0]: https://github.com/iolave/bun-jira-tickets-from-gh/releases/tag/v0.1.0
