@@ -87,6 +87,7 @@ syncCmd.action(async () => {
 	logger.debug(logName, "created new github client");
 
 	const project = new GithubProject(gh);
+	logger.info(logName, "loading github project", { id: args.ghProjectId })
 	const initErr = await project.init(args.ghProjectId);
 	if (initErr) return util.error(initErr);
 
@@ -98,6 +99,7 @@ syncCmd.action(async () => {
 		const [userRes, userErr] = await jira.users.searchByEmail(jiraEmail!);
 		if (userErr) return util.error(userErr);
 		args.ghAssigneesMap[ghUser] = userRes.accountId;
+		logger.debug(logName, "mapped github user", { ghUser, jiraEmail, jiraAccountId: userRes.accountId });
 	}
 
 	do {
@@ -107,12 +109,12 @@ syncCmd.action(async () => {
 		for (const pi of items) {
 			// TODO: if task already have a jira issue sync issue and task
 			if (pi.jiraUrl) {
-				logger.debug(logName, "skipping creation, issue already created", { title: pi.title, url: pi.jiraUrl });
+				logger.debug(logName, "skipping creation, issue already created", { itemId: pi.id, title: pi.title, url: pi.jiraUrl });
 
 				continue;
 			}
 
-			logger.info(logName, "creating jira issue", { title: pi.title });
+			logger.info(logName, "creating jira issue", { itemId: pi.id, title: pi.title });
 			var accountId = "";
 			if (args.ghAssigneesMap) accountId = pi.assignee ? args.ghAssigneesMap[pi.assignee] ?? "" : "";
 
@@ -127,7 +129,7 @@ syncCmd.action(async () => {
 				continue;
 			}
 
-			logger.info(logName, "created issue", { url: createRes.issueUrl });
+			logger.info(logName, "created issue", { itemId: pi.id, url: createRes.issueUrl });
 			// UPDATE URL FIELD
 			const updateUrlErr = await project.updateJiraUrl(pi.id, createRes.issueUrl);
 			if (updateUrlErr) logger.error(logName, "unable to update jira url in github", updateUrlErr);
@@ -143,11 +145,11 @@ syncCmd.action(async () => {
 			for (const t of transitions) {
 				const err = await jira.issues.transition(createRes.issueKey, t);
 				if (!err) {
-					logger.info(logName, `transitioned task "${createRes.issueKey}" with transition "${t}"`);
+					logger.info(logName, `transitioned task "${createRes.issueKey}" with transition "${t}"`, { itemId: pi.id });
 					continue;
 				}
 
-				logger.error(logName, `unable to transition task "${createRes.issueKey}" with transition "${t}"`);
+				logger.error(logName, `unable to transition task "${createRes.issueKey}" with transition "${t}"`, { itemId: pi.id });
 				continue;
 			}
 
