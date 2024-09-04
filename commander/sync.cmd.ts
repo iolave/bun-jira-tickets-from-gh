@@ -5,7 +5,7 @@ import logger from "../helpers/logger";
 import { env } from "bun";
 import GithubClient from "../services/github";
 import JiraClient from "../services/jira";
-import GithubProject from "../business-logic/github-project";
+import GithubProject, { FIELD_ASSIGNEES, FIELD_JIRA_ISSUE_TYPE, FIELD_JIRA_URL, FIELD_STATUS, FIELD_TITLE } from "../business-logic/github-project";
 
 type SyncOptions = {
 	ghProjectId: string,
@@ -108,21 +108,21 @@ syncCmd.action(async () => {
 
 		for (const pi of items) {
 			// TODO: if task already have a jira issue sync issue and task
-			if (pi.jiraUrl) {
-				logger.debug(logName, "skipping creation, issue already created", { itemId: pi.id, title: pi.title, url: pi.jiraUrl });
+			if (pi[FIELD_JIRA_URL]) {
+				logger.debug(logName, "skipping creation, issue already created", { itemId: pi.id, title: pi[FIELD_TITLE], url: pi[FIELD_JIRA_URL] });
 
 				continue;
 			}
 
-			logger.info(logName, "creating jira issue", { itemId: pi.id, title: pi.title });
+			logger.info(logName, "creating jira issue", { itemId: pi.id, title: pi[FIELD_TITLE] });
 			var accountId = "";
-			if (args.ghAssigneesMap) accountId = pi.assignee ? args.ghAssigneesMap[pi.assignee] ?? "" : "";
+			if (args.ghAssigneesMap) accountId = pi[FIELD_ASSIGNEES] ? args.ghAssigneesMap[pi[FIELD_ASSIGNEES]] ?? "" : "";
 
 			const [createRes, createErr] = await jira.issues.create({
 				projectKey: args.jiraProjectKey,
-				summary: pi.title,
+				summary: pi[FIELD_TITLE],
 				accountId,
-				issueName: pi.jiraIssueType
+				issueName: pi[FIELD_JIRA_ISSUE_TYPE],
 			});
 			if (createErr) {
 				logger.error(logName, "error in issue creation", createErr);
@@ -136,9 +136,9 @@ syncCmd.action(async () => {
 
 			// UPDATE TASK STATUS
 			var transitions: number[] = [];
-			if (pi.status === "In Progress" && args.transitionsToWip)
+			if (pi[FIELD_STATUS] === "In Progress" && args.transitionsToWip)
 				transitions = args.transitionsToWip;
-			else if (pi.status === "Done" && args.transitionsToWip && args.transitionsToDone)
+			else if (pi[FIELD_STATUS] === "Done" && args.transitionsToWip && args.transitionsToDone)
 				transitions = [...args.transitionsToWip, ...args.transitionsToDone];
 
 			// TODO: detect next transition instead of trying em all
@@ -163,6 +163,9 @@ syncCmd.action(async () => {
 			logger.info(logName, `refreshing github project items`, { projectId: args.ghProjectId })
 			const refreshErr = await project.refreshProjectItems();
 			if (refreshErr) logger.error(logName, "got an error when refreshing github project items", refreshErr);
+
+			if (project.getItemsDiff()) logger.debug(logName, `found GitHub items changes`, project.getItemsDiff());
+			else logger.debug(logName, `no changes in GitHub items`, project.getItemsDiff());
 		}
 	} while (args.sleepTime && args.sleepTime >= 0);
 });

@@ -8,6 +8,7 @@ const logName = {
 	newProject: "GithuProject",
 	projectInit: "GithuProject.init",
 	updateItem: "GithuProject.update",
+	refreshItems: "GithuProject.refresh",
 }
 
 export const FIELD_ESTIMATE = "Estimate";
@@ -125,9 +126,15 @@ async function loadProject(client: GithubClient, id: string): SafePromise<Github
 	return [project, null];
 }
 
+type ItemDiff = {
+	id: string;
+	fields: { id: string, new: boolean, newValue: string | string[] | number | null }[]
+}
+
 class GithubProject {
 	private client: GithubClient;
 	private props: GithubProjectProps | undefined = undefined;
+	private itemsDiff: ItemDiff[] | undefined = undefined;
 
 	constructor(client: GithubClient) {
 		logger.debug(logName.newProject, "creating new github client");
@@ -146,14 +153,78 @@ class GithubProject {
 		return [null, new Error(`GithubProject not initialized`)];
 	}
 
+	private getItem(id: string): SafeReturn<GithubProjectItem | undefined> {
+		const [props, propsErr] = this.getProps();
+		if (propsErr) return [null, propsErr];
+
+		const itemSearch = props.items.filter(item => item.id === id);
+		if (itemSearch.length === 0) {
+			return [undefined, null];
+		}
+
+		if (itemSearch.length > 1) {
+			return [null, new Error(`item with id "${id}" seems to be duplicated`)];
+		}
+
+		return [itemSearch[0], null];
+	}
+
 	public async refreshProjectItems(): Promise<Error | undefined> {
 		const [props, propsErr] = this.getProps();
 		if (propsErr) return propsErr;
 
 		const [projectItems, projectItemsErr] = await this.client.projects.getProjectItems(props.id);
 		if (projectItemsErr) return projectItemsErr;
+
+		const itemsDiff: ItemDiff[] = [];
+
+		for (const newItem of projectItems) {
+			logger.debug(logName.refreshItems, `checking diff for GitHub item`, { id: newItem.id })
+			const [currentItem, currentItemErr] = this.getItem(newItem.id);
+			if (currentItemErr) return currentItemErr;
+
+			const { id, ...newItemWithoutId } = newItem;
+			const fields: ItemDiff["fields"] = [];
+
+			if (!currentItem) {
+				logger.debug(logName.refreshItems, `item not found in local storage`, { id: newItem.id })
+				for (const [fieldName, newValue] of Object.entries(newItemWithoutId)) {
+					const [fieldId, fieldIdErr] = this.getFieldId(fieldName as keyof GithubSyncProjectFields);
+					if (fieldIdErr) return fieldIdErr;
+
+					fields.push({ id: fieldId, new: true, newValue });
+				}
+
+				itemsDiff.push({ id, fields });
+				continue;
+			}
+
+			logger.debug(logName.refreshItems, `item found in local storage`, { id: newItem.id })
+			for (const [fieldName, newValue] of Object.entries(newItemWithoutId)) {
+				const [fieldId, fieldIdErr] = this.getFieldId(fieldName as keyof GithubSyncProjectFields);
+				if (fieldIdErr) return fieldIdErr;
+
+				const currentValue = currentItem[fieldName as keyof GithubSyncProjectFields];
+
+				const currentFieldValueHash = new Bun.SHA256().update(JSON.stringify(currentValue)).digest("hex");
+				const newFieldValueHash = new Bun.SHA256().update(JSON.stringify(newValue)).digest("hex");
+
+				// no changes in field
+				if (currentFieldValueHash === newFieldValueHash) {
+					logger.debug(logName.refreshItems, `no changes found for item`, { id: newItem.id })
+					continue;
+				}
+				logger.debug(logName.refreshItems, `changes found for item`, { id: newItem.id, newValue, currentValue });
+				fields.push({ id: fieldId, new: false, newValue: newValue });
+			}
+
+			if (fields.length > 0) itemsDiff.push({ id, fields });
+		}
+
 		props.items = projectItems;
 		this.props = props;
+		if (itemsDiff.length === 0) this.itemsDiff = undefined;
+		else this.itemsDiff = itemsDiff;
 
 		return undefined;
 	}
@@ -162,6 +233,10 @@ class GithubProject {
 		const [props, err] = this.getProps();
 		if (err) return [null, err];
 		return safeRes(props.items);
+	}
+
+	public getItemsDiff(): ItemDiff[] | undefined {
+		return this.itemsDiff;
 	}
 
 	private getFieldId(field: keyof GithubSyncProjectFields): SafeReturn<string> {
@@ -205,7 +280,7 @@ class GithubProject {
 		if (updateErr) return updateErr;
 		logger.debug(logName.updateItem, "updated jira url in github", { itemId, url, updateId: updateRes.data.updateProjectV2ItemFieldValue.clientMutationId });
 
-		props.items[itemIndex].jiraUrl = url;
+		props.items[itemIndex][FIELD_JIRA_URL] = url;
 		const updateItemErr = this.updateItem(item);
 		return updateItemErr;
 	}

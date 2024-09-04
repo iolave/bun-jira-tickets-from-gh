@@ -1,4 +1,5 @@
 import { sendGqlRequest } from ".";
+import { FIELD_ASSIGNEES, FIELD_ESTIMATE, FIELD_JIRA_ISSUE_TYPE, FIELD_JIRA_URL, FIELD_REPO, FIELD_STATUS, FIELD_TITLE } from "../../business-logic/github-project";
 import { safeErr, safeRes, type SafePromise } from "../../helpers/functions";
 import type { IProjectItemUpdateField, UpdateProjectItemFieldResponse } from "./update-project-item-field.query";
 import updateProjectItemFieldQuery from "./update-project-item-field.query";
@@ -48,14 +49,14 @@ async function listOrganizationProjects(token: string, org: string): SafePromise
 
 export type GithubProjectItem = {
 	id: string;
-	title: string;
-	status: string | null;
-	estimate: number | null;
-	jiraIssueType: string;
-	jiraUrl: string | null;
-	assignee: string | null;
-	comments: string[];
-	repo: string | null;
+	[FIELD_TITLE]: string;
+	[FIELD_STATUS]: string | null;
+	[FIELD_ESTIMATE]: number | null;
+	[FIELD_JIRA_ISSUE_TYPE]: string;
+	[FIELD_JIRA_URL]: string | null;
+	[FIELD_ASSIGNEES]: string | null;
+	//comments: string[];
+	[FIELD_REPO]: string | null;
 }
 
 async function getProjectItems(token: string, id: string): SafePromise<GithubProjectItem[]> {
@@ -106,14 +107,14 @@ async function getProjectItems(token: string, id: string): SafePromise<GithubPro
 
 	const result = reqRes?.data.node.items.nodes.map((obj: any) => ({
 		id: obj?.id ?? "",
-		title: obj?.title?.text ?? "",
-		status: obj?.status?.name ?? null,
-		estimate: obj?.estimate?.number ?? null,
-		jiraIssueType: obj?.jiraIssueType?.name ?? "",
-		jiraUrl: obj?.jiraUrl?.text ?? null,
-		repo: obj?.repo?.repository?.nameWithOwner ?? null,
-		assignee: obj?.assignees?.users?.nodes?.at(0)?.login ?? null,
-		comments: obj?.content?.comments?.nodes.map((c: any) => c.body ?? []) ?? [],
+		[`${FIELD_TITLE}`]: obj?.title?.text ?? "",
+		[`${FIELD_STATUS}`]: obj?.status?.name ?? null,
+		[`${FIELD_ESTIMATE}`]: obj?.estimate?.number ?? null,
+		[`${FIELD_JIRA_ISSUE_TYPE}`]: obj?.jiraIssueType?.name ?? "",
+		[`${FIELD_JIRA_URL}`]: obj?.jiraUrl?.text ?? null,
+		[`${FIELD_REPO}`]: obj?.repo?.repository?.nameWithOwner ?? null,
+		[`${FIELD_ASSIGNEES}`]: obj?.assignees?.users?.nodes?.at(0)?.login ?? null,
+		//comments: obj?.content?.comments?.nodes.map((c: any) => c.body ?? []) ?? [],
 	})) as unknown as GithubProjectItem[];
 
 	return safeRes(result);
