@@ -1,4 +1,4 @@
-import { safeErr, safePromise, safeRes, type SafePromise } from "../../helpers/functions";
+import { Err, Ok, safePromise, type PResult } from "@iolave/utils/functions";
 import projects from "./projects";
 import type { IProjectItemUpdateField } from "./update-project-item-field.query";
 
@@ -23,7 +23,7 @@ export default class GithubClient {
 	}
 }
 
-export async function sendGqlRequest<T>(token: string, query: string): SafePromise<Partial<T>> {
+export async function sendGqlRequest<T>(token: string, query: string): PResult<Partial<T>> {
 	const headers = new Headers();
 	headers.append("authorization", `Bearer ${token}`);
 
@@ -39,18 +39,18 @@ export async function sendGqlRequest<T>(token: string, query: string): SafePromi
 
 	const [fetchResult, err] = await safePromise(fetch(url, requestInit));
 
-	if (err) return safeErr(err);
+	if (err) return Err(err);
 
 	if (fetchResult.status !== 200) {
 		const [resText, textErr] = await safePromise(fetchResult.text());
 
-		if (textErr) return safeErr(textErr);
-		return safeErr(new Error(resText));
+		if (textErr) return Err(textErr);
+		return Err(new Error(resText));
 	}
 
 	const [fetchJson, fetchJsonErr] = await safePromise<Partial<T>>(fetchResult.json());
-	if (fetchJsonErr) return safeErr(fetchJsonErr);
+	if (fetchJsonErr) return Err(fetchJsonErr);
 
-	return safeRes(fetchJson);
+	return Ok(fetchJson);
 }
 

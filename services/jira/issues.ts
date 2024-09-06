@@ -1,4 +1,4 @@
-import { safeErr, safePromise, safeRes, type SafePromise } from "../../helpers/functions";
+import { Err, Ok, safePromise, type PResult } from "@iolave/utils/functions";
 
 const buildTransitionIssueBody = (transitionId: number) => JSON.stringify({
 	transition: { id: `${transitionId}` }
@@ -48,7 +48,7 @@ function buildIssueBody(args: { projectKey: string, summary: string, issueName: 
 	});
 }
 
-async function create(args: { token: string, subdomain: string, projectKey: string, summary: string, issueName: string, accountId?: string, content: any }): SafePromise<{ issueId: string, issueKey: string, issueUrl: string }> {
+async function create(args: { token: string, subdomain: string, projectKey: string, summary: string, issueName: string, accountId?: string, content: any }): PResult<{ issueId: string, issueKey: string, issueUrl: string }> {
 	const { token, subdomain, projectKey, summary, issueName, accountId, content } = args;
 	const headers = new Headers();
 	headers.append("authorization", `Basic ${token}`);
@@ -70,21 +70,21 @@ async function create(args: { token: string, subdomain: string, projectKey: stri
 
 	const [fetchResult, err] = await safePromise(fetch(url, requestInit));
 
-	if (err) return safeErr(err);
+	if (err) return Err(err);
 
 	if (fetchResult.status !== 201) {
 		const [resText, textErr] = await safePromise(fetchResult.text());
 
-		if (textErr) return safeErr(textErr);
-		return safeErr(new Error(resText));
+		if (textErr) return Err(textErr);
+		return Err(new Error(resText));
 
 	}
 
 	const [fetchJson, fetchJsonErr] = await safePromise(fetchResult.json());
 
-	if (fetchJsonErr) return safeErr(fetchJsonErr);
+	if (fetchJsonErr) return Err(fetchJsonErr);
 
-	return safeRes({
+	return Ok({
 		issueId: fetchJson?.id ?? "",
 		issueKey: fetchJson?.key ?? "",
 		issueUrl: `https://${subdomain}.atlassian.net/browse/${fetchJson?.key ?? ""}`,

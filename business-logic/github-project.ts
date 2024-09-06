@@ -1,4 +1,4 @@
-import { safeRes, type SafePromise, type SafeReturn } from "../helpers/functions";
+import { Ok, type PResult, type Result } from "@iolave/utils/functions";
 import logger from "../helpers/logger";
 import GithubClient from "../services/github";
 import type { GithubProjectField, GithubProjectItem } from "../services/github/projects";
@@ -52,7 +52,7 @@ type GithubProjectProps = {
 
 var githubProject: GithubProject | undefined = undefined;
 
-async function loadProject(client: GithubClient, id: string): SafePromise<GithubProjectProps> {
+async function loadProject(client: GithubClient, id: string): PResult<GithubProjectProps> {
 	// Creates tmp project with id
 	var project: GithubProjectProps = {
 		id,
@@ -153,7 +153,7 @@ class GithubProject {
 		return [null, new Error(`GithubProject not initialized`)];
 	}
 
-	private getItem(id: string): SafeReturn<GithubProjectItem | undefined> {
+	private getItem(id: string): Result<GithubProjectItem | undefined> {
 		const [props, propsErr] = this.getProps();
 		if (propsErr) return [null, propsErr];
 
@@ -229,20 +229,20 @@ class GithubProject {
 		return undefined;
 	}
 
-	public getItems(): SafeReturn<GithubProjectItem[]> {
+	public getItems(): Result<GithubProjectItem[]> {
 		const [props, err] = this.getProps();
 		if (err) return [null, err];
-		return safeRes(props.items);
+		return Ok(props.items);
 	}
 
 	public getItemsDiff(): ItemDiff[] | undefined {
 		return this.itemsDiff;
 	}
 
-	private getFieldId(field: keyof GithubSyncProjectFields): SafeReturn<string> {
+	private getFieldId(field: keyof GithubSyncProjectFields): Result<string> {
 		const [props, err] = this.getProps();
 		if (err) return [null, err];
-		return safeRes(props.fields[field].id);
+		return Ok(props.fields[field].id);
 	}
 
 	private updateItem(item: GithubProjectItem): Error | undefined {

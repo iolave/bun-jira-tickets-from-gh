@@ -13,6 +13,7 @@
     "typescript": "^5.5.4"
   },
   "dependencies": {
+    "@iolave/utils": "npm:@jsr/iolave__utils@^1.0.1",
     "commander": "^12.1.0"
   }
 }
