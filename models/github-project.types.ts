@@ -10,6 +10,14 @@ export enum itemStatus {
 	DONE = "Done",
 }
 
+export function parseItemStatus(status: string): itemStatus | undefined {
+	if (Object.keys(itemStatus).includes(status)) {
+		// @ts-ignore;
+		return itemStatus[status]
+	}
+	return undefined;
+}
+
 export enum itemField {
 	JIRA_URL = "Jira URL",
 	JIRA_ISSUE_TYPE = "Jira issue type",

@@ -6,7 +6,7 @@ import logger from "../helpers/logger";
 import * as json from "@iolave/utils/json";
 
 const log = {
-	loader: "model_github_project_loader",
+	loader: "models.githubProject.loader",
 } as const;
 
 export async function loadFile(projectId: string): Promise<Project> {
