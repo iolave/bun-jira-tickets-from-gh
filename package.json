@@ -2,7 +2,6 @@
   "name": "jira-tickets-from-gh",
   "version": "0.2.0",
   "module": "index.ts",
-  "type": "module",
   "bin": {
     "jira-tickets-from-gh": "index.ts"
   },
@@ -13,7 +12,8 @@
     "typescript": "^5.5.4"
   },
   "dependencies": {
-    "@iolave/utils": "npm:@jsr/iolave__utils@1.1.1",
-    "commander": "^12.1.0"
+    "@iolave/utils": "npm:@jsr/iolave__utils@1.1.2",
+    "commander": "^12.1.0",
+    "zod": "^3.23.8"
   }
 }

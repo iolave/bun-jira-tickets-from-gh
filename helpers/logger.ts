@@ -10,6 +10,10 @@ const logger = {
 	error: (functionName: string, msg: string, info?: Record<string, any>) => {
 		console.log(buildLogEntry("ERROR", functionName, msg, info));
 	},
+	fatal: (functionName: string, msg: string, info?: Record<string, any>): never => {
+		console.log(buildLogEntry("FATAL", functionName, msg, info));
+		process.exit(1);
+	},
 	warn: (functionName: string, msg: string, info?: Record<string, any>) => {
 		console.log(buildLogEntry("WARN", functionName, msg, info));
 	},
