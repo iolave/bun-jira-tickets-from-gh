@@ -14,6 +14,7 @@ export default class GithubClient {
 		listOrganizationProjects: (org: string) => projects.listOrganizationProjects(this.token, org),
 		getProjectFields: (id: string) => projects.getProjectFields(this.token, id),
 		getProjectItems: (id: string) => projects.getProjectItems(this.token, id),
+		getProjectItems2: (id: string) => projects.getProjectItems2(this.token, id),
 		updateProjectItemField: (args: { projectId: string, fieldId: string, itemId: string, newValue: IProjectItemUpdateField }) => projects.updateProjectItemField({
 			token: this.token,
 			projectId: args.projectId,
