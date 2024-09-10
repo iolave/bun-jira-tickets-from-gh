@@ -1,5 +1,5 @@
 import { loadFile, writeProject } from "./github-project.core"
-import { type Item, type Project } from "./github-project.types";
+import { itemField, type Item, type Project } from "./github-project.types";
 
 async function upsertItems(project: Project, ...items: Item[]): Promise<undefined | Error> {
 	for (const item of items) {
@@ -21,8 +21,17 @@ async function getProject(id: string): Promise<Project> {
 	return loadFile(id);
 }
 
+function getItemsWithoutUrl(project: Project): Item[] {
+	return project.items.filter(i => i[itemField.JIRA_URL].value === undefined || i[itemField.JIRA_URL].value === null)
+}
+
+function getItemsWithUrl(project: Project): Item[] {
+	return project.items.filter(i => i[itemField.JIRA_URL].value !== undefined || i[itemField.JIRA_URL].value !== null)
+}
 export default {
 	upsertItems,
 	getProject,
 	getItem,
+	getItemsWithoutUrl,
+	getItemsWithUrl,
 }
