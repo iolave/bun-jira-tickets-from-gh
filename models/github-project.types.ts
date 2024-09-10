@@ -11,11 +11,10 @@ export enum itemStatus {
 }
 
 export function parseItemStatus(status: string): itemStatus | undefined {
-	if (Object.keys(itemStatus).includes(status)) {
-		// @ts-ignore;
-		return itemStatus[status]
-	}
-	return undefined;
+	const pair = Object.entries(itemStatus).findLast(([_k, v]) => v === status);
+	if (!pair) return undefined;
+	return pair[1];
+
 }
 
 export enum itemField {
