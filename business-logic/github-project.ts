@@ -1,4 +1,4 @@
-import { Ok, type PResult, type Result } from "@iolave/utils/functions";
+import { Ok, type PResult, type Result } from "@iolave/utils/results";
 import logger from "../helpers/logger";
 import GithubClient from "../services/github";
 import type { GithubProjectField, GithubProjectItem } from "../services/github/projects";

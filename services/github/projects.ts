@@ -1,4 +1,4 @@
-import { Err, Ok, type PResult } from "@iolave/utils/functions";
+import { Err, Ok, type PResult } from "@iolave/utils/results";
 import { sendGqlRequest } from ".";
 import { FIELD_ASSIGNEES, FIELD_ESTIMATE, FIELD_JIRA_ISSUE_TYPE, FIELD_JIRA_URL, FIELD_REPO, FIELD_STATUS, FIELD_TITLE } from "../../business-logic/github-project";
 import type { IProjectItemUpdateField, UpdateProjectItemFieldResponse } from "./update-project-item-field.query";

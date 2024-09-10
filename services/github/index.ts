@@ -1,4 +1,5 @@
-import { Err, Ok, safePromise, type PResult } from "@iolave/utils/functions";
+import { Err, Ok, type PResult } from "@iolave/utils/results";
+import { safePromise } from "@iolave/utils/functions";
 import projects from "./projects";
 import type { IProjectItemUpdateField } from "./update-project-item-field.query";
 
