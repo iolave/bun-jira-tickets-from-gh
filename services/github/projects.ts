@@ -11,7 +11,7 @@ async function updateProjectItemField(args: { token: string, projectId: string, 
 
 	if (reqErr) return Err(reqErr);
 
-	if (!reqRes.data?.updateProjectV2ItemFieldValue.clientMutationId) {
+	if (!reqRes?.data?.updateProjectV2ItemFieldValue?.clientMutationId) {
 		const err = new Error(JSON.stringify(reqRes));;
 		return Err(err);
 	}
@@ -107,6 +107,9 @@ async function getProjectItems2(token: string, id: string): PResult<Item[]> {
 
 	if (!reqRes?.data?.node?.items?.nodes) return Err(new Error(JSON.stringify(reqRes)));
 
+	const [fields, fieldsErr] = await getProjectFields(token, id);
+	if (fieldsErr) return Err(fieldsErr);
+
 	const items: Item[] = [];
 
 	const responseSchema = z.object({
@@ -129,13 +132,13 @@ async function getProjectItems2(token: string, id: string): PResult<Item[]> {
 		if (error) return Err(error);
 		items.push({
 			id: data.id,
-			[`${itemField.TITLE}`]: { id: "", value: data.title.text },
-			[`${itemField.STATUS}`]: { id: "", value: parseItemStatus(data.status?.name ?? "") },
-			[`${itemField.ESTIMATE}`]: { id: "", value: data.estimate?.number },
-			[`${itemField.ASSIGNEES}`]: { id: "", value: data.assignees?.users?.nodes?.map(i => i.login) ?? [] },
-			[`${itemField.REPO}`]: { id: "", value: data.repo?.repository?.nameWithOwner },
-			[`${itemField.JIRA_URL}`]: { id: "", value: data.jiraUrl?.text },
-			[`${itemField.JIRA_ISSUE_TYPE}`]: { id: "", value: data.jiraIssueType?.name },
+			[`${itemField.TITLE}`]: { id: fields.filter(f => f.name === itemField.TITLE).pop()?.id ?? "", value: data.title.text },
+			[`${itemField.STATUS}`]: { id: fields.filter(f => f.name === itemField.STATUS).pop()?.id ?? "", value: parseItemStatus(data.status?.name ?? "") },
+			[`${itemField.ESTIMATE}`]: { id: fields.filter(f => f.name === itemField.ESTIMATE).pop()?.id ?? "", value: data.estimate?.number },
+			[`${itemField.ASSIGNEES}`]: { id: fields.filter(f => f.name === itemField.ASSIGNEES).pop()?.id ?? "", value: data.assignees?.users?.nodes?.map(i => i.login) ?? [] },
+			[`${itemField.REPO}`]: { id: fields.filter(f => f.name === itemField.REPO).pop()?.id ?? "", value: data.repo?.repository?.nameWithOwner },
+			[`${itemField.JIRA_URL}`]: { id: fields.filter(f => f.name === itemField.JIRA_URL).pop()?.id ?? "", value: data.jiraUrl?.text },
+			[`${itemField.JIRA_ISSUE_TYPE}`]: { id: fields.filter(f => f.name === itemField.JIRA_ISSUE_TYPE).pop()?.id ?? "", value: data.jiraIssueType?.name },
 		});
 	}
 
