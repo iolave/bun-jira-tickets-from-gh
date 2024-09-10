@@ -13,6 +13,10 @@ async function upsertItems(project: Project, ...items: Item[]): Promise<undefine
 	return writeProject(project);
 }
 
+function getItem(project: Project, itemId: string): Item | undefined {
+	return project.items.findLast(i => i.id === itemId);
+}
+
 async function getProject(id: string): Promise<Project> {
 	return loadFile(id);
 }
@@ -20,4 +24,5 @@ async function getProject(id: string): Promise<Project> {
 export default {
 	upsertItems,
 	getProject,
+	getItem,
 }
