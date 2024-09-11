@@ -1,6 +1,6 @@
 {
   "name": "jira-tickets-from-gh",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "module": "index.ts",
   "bin": {
     "jira-tickets-from-gh": "index.ts"

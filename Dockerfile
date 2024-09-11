@@ -12,4 +12,5 @@ ADD ./helpers helpers
 ADD ./services services
 ADD ./business-logic business-logic
 ADD ./commander commander
+ADD ./models models
 

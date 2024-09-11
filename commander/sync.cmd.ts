@@ -6,8 +6,9 @@ import { env } from "bun";
 import GithubClient from "../services/github";
 import JiraClient from "../services/jira";
 import GithubProject, { FIELD_ASSIGNEES, FIELD_JIRA_ISSUE_TYPE, FIELD_JIRA_URL, FIELD_STATUS, FIELD_TITLE } from "../business-logic/github-project";
+import syncAction from "./sync.action";
 
-type SyncOptions = {
+export type SyncOptions = {
 	ghProjectId: string,
 	ghAssigneesMap?: Record<string, string | undefined>,
 	jiraProjectKey: string,
@@ -55,120 +56,7 @@ syncCmd.option("--sleep-time <ms>", "sleep time between executions. If not speci
 syncCmd.requiredOption("--gh-project-id <STRING>", "Github project ID");
 syncCmd.requiredOption("--jira-project-key <STRING>", "Jira project KEY");
 syncCmd.requiredOption("--jira-subdomain <STRING>", "Jira subdomain");
-syncCmd.action(async () => {
-	const logName = "syncCmd.action";
-	var { ghToken, verbose, jiraToken } = syncCmd.optsWithGlobals<ProgramGlobalOptions>();
-	const args = syncCmd.opts<SyncOptions>();
-	if (verbose) logger.enableVerboseMode();
-
-	logger.debug(logName, "parsed args", { args });
-
-	if (!ghToken) {
-		logger.debug(logName, "unable to find github token in options");
-		ghToken = env["GITHUB_TOKEN"]
-	}
-
-	if (!ghToken) {
-		logger.debug(logName, "unable to find github token in env");
-		return util.error(`either set "GITHUB_TOKEN" environment variable or the --gh-token option`)
-	}
-
-	if (!jiraToken) {
-		logger.debug(logName, "unable to find jira token in options");
-		jiraToken = env["JIRA_TOKEN"]
-	}
-
-	if (!jiraToken) {
-		logger.debug(logName, "unable to find jira token in env");
-		return util.error(`either set "JIRA_TOKEN" environment variable or the --jira-token option`)
-	}
-
-	const gh = new GithubClient(ghToken);
-	logger.debug(logName, "created new github client");
-
-	const project = new GithubProject(gh);
-	logger.info(logName, "loading github project", { id: args.ghProjectId })
-	const initErr = await project.init(args.ghProjectId);
-	if (initErr) return util.error(initErr);
-
-	/* THIS IS WIP CODE TO TEST THE JIRA ISSUE CREATION!!!!! */
-	const jira = new JiraClient(jiraToken, args.jiraSubdomain);
-	logger.debug(logName, "created new jira client");
-
-	if (args.ghAssigneesMap) for (const [ghUser, jiraEmail] of Object.entries(args.ghAssigneesMap)) {
-		const [userRes, userErr] = await jira.users.searchByEmail(jiraEmail!);
-		if (userErr) return util.error(userErr);
-		args.ghAssigneesMap[ghUser] = userRes.accountId;
-		logger.debug(logName, "mapped github user", { ghUser, jiraEmail, jiraAccountId: userRes.accountId });
-	}
-
-	do {
-		const [items, itemsErr] = project.getItems();
-		if (itemsErr) return util.error(itemsErr);
-
-		for (const pi of items) {
-			// TODO: if task already have a jira issue sync issue and task
-			if (pi[FIELD_JIRA_URL]) {
-				logger.debug(logName, "skipping creation, issue already created", { itemId: pi.id, title: pi[FIELD_TITLE], url: pi[FIELD_JIRA_URL] });
-
-				continue;
-			}
-
-			logger.info(logName, "creating jira issue", { itemId: pi.id, title: pi[FIELD_TITLE] });
-			var accountId = "";
-			if (args.ghAssigneesMap) accountId = pi[FIELD_ASSIGNEES] ? args.ghAssigneesMap[pi[FIELD_ASSIGNEES]] ?? "" : "";
-
-			const [createRes, createErr] = await jira.issues.create({
-				projectKey: args.jiraProjectKey,
-				summary: pi[FIELD_TITLE],
-				accountId,
-				issueName: pi[FIELD_JIRA_ISSUE_TYPE],
-			});
-			if (createErr) {
-				logger.error(logName, "error in issue creation", createErr);
-				continue;
-			}
-
-			logger.info(logName, "created issue", { itemId: pi.id, url: createRes.issueUrl });
-			// UPDATE URL FIELD
-			const updateUrlErr = await project.updateJiraUrl(pi.id, createRes.issueUrl);
-			if (updateUrlErr) logger.error(logName, "unable to update jira url in github", updateUrlErr);
-
-			// UPDATE TASK STATUS
-			var transitions: number[] = [];
-			if (pi[FIELD_STATUS] === "In Progress" && args.transitionsToWip)
-				transitions = args.transitionsToWip;
-			else if (pi[FIELD_STATUS] === "Done" && args.transitionsToWip && args.transitionsToDone)
-				transitions = [...args.transitionsToWip, ...args.transitionsToDone];
-
-			// TODO: detect next transition instead of trying em all
-			for (const t of transitions) {
-				const err = await jira.issues.transition(createRes.issueKey, t);
-				if (!err) {
-					logger.info(logName, `transitioned task "${createRes.issueKey}" with transition "${t}"`, { itemId: pi.id });
-					continue;
-				}
-
-				logger.error(logName, `unable to transition task "${createRes.issueKey}" with transition "${t}"`, { itemId: pi.id });
-				continue;
-			}
-
-		}
-
-		if (args.sleepTime && args.sleepTime >= 0) {
-			logger.info(logName, `sleeping for ${args.sleepTime}ms...`)
-			await new Promise(res => setTimeout(() => res(undefined), args.sleepTime))
-
-
-			logger.info(logName, `refreshing github project items`, { projectId: args.ghProjectId })
-			const refreshErr = await project.refreshProjectItems();
-			if (refreshErr) logger.error(logName, "got an error when refreshing github project items", refreshErr);
-
-			if (project.getItemsDiff()) logger.debug(logName, `found GitHub items changes`, project.getItemsDiff());
-			else logger.debug(logName, `no changes in GitHub items`, project.getItemsDiff());
-		}
-	} while (args.sleepTime && args.sleepTime >= 0);
-});
+syncCmd.action(syncAction);
 
 export default syncCmd;
 
