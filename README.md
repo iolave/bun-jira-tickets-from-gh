@@ -97,6 +97,7 @@ jira-tickets-from-gh --gh-token=TOKEN --jira-token=TOKEN sync \
 | JIRA_WIP_TRANSITIONS  | `--transitions-to-wip` |
 | JIRA_DONE_TRANSITIONS | `--transitions-to-done` |
 | SLEEP_TIME            | `--sleep-time` |
+| VERBOSE               | if value is set to `true` then `-v` option is mapped |
 
 ### Build
 ```bash

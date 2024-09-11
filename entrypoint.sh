@@ -9,7 +9,11 @@ for to_change in $egrep_res; do
 	eval "export ${env_key}=${secret}"
 done
 
-bun run index.ts sync \
+if [ "${VERBOSE}" = "true" ]; then
+	VERBOSE_FLAG="-v"
+fi
+
+bun run index.ts ${VERBOSE_FLAG} sync \
 	--gh-token=${GH_TOKEN} \
 	--gh-project-id=${GH_PROJECT_ID} \
 	--gh-assignees-map=${GH_USERS_MAP} \
