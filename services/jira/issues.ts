@@ -60,7 +60,7 @@ async function create(args: { token: string, subdomain: string, projectKey: stri
 		headers,
 		body: buildIssueBody({
 			projectKey,
-			summary: `[JTFG] ${summary}`,
+			summary,
 			issueName,
 			accountId,
 			content,

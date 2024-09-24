@@ -138,11 +138,18 @@ async function createJiraIssueFromGhTaskWithoutUrl(args: {
 		return;
 	}
 
-	const accountId = actionOpts.ghAssigneesMap ? actionOpts.ghAssigneesMap[item[itemField.ASSIGNEES].value.pop() ?? ""] : undefined
+	const accountId = actionOpts.ghAssigneesMap ? actionOpts.ghAssigneesMap[item[itemField.ASSIGNEES].value.pop() ?? ""] : undefined;
+
+	let summary: string;
+	if (actionOpts.jiraIssuePrefix && actionOpts.jiraIssuePrefix !== "") {
+		summary = `${actionOpts.jiraIssuePrefix} ${item[itemField.TITLE].value}`;
+	} else {
+		summary = item[itemField.TITLE].value;
+	}
 
 	const [createRes, createErr] = await jira.issues.create({
 		projectKey: actionOpts.jiraProjectKey,
-		summary: item[itemField.TITLE].value,
+		summary,
 		issueName: item[itemField.JIRA_ISSUE_TYPE].value,
 		accountId,
 	});

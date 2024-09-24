@@ -1,11 +1,5 @@
 import { Command, Option } from "commander";
 import util from "./util";
-import type { ProgramGlobalOptions } from ".";
-import logger from "../helpers/logger";
-import { env } from "bun";
-import GithubClient from "../services/github";
-import JiraClient from "../services/jira";
-import GithubProject, { FIELD_ASSIGNEES, FIELD_JIRA_ISSUE_TYPE, FIELD_JIRA_URL, FIELD_STATUS, FIELD_TITLE } from "../business-logic/github-project";
 import syncAction from "./sync.action";
 
 export type SyncOptions = {
@@ -16,6 +10,7 @@ export type SyncOptions = {
 	transitionsToWip?: number[],
 	transitionsToDone?: number[],
 	sleepTime?: number,
+	jiraIssuePrefix?: string,
 }
 
 const syncCmdName = "sync";
@@ -56,6 +51,12 @@ syncCmd.option("--sleep-time <ms>", "sleep time between executions. If not speci
 syncCmd.requiredOption("--gh-project-id <STRING>", "Github project ID");
 syncCmd.requiredOption("--jira-project-key <STRING>", "Jira project KEY");
 syncCmd.requiredOption("--jira-subdomain <STRING>", "Jira subdomain");
+
+// Jira issue prefix to be appended to title
+const jiraIssuePrefixOption = new Option("--jira-issue-prefix <STRING>", "Prefix to be added to jira issue title");
+jiraIssuePrefixOption.required = false;
+syncCmd.addOption(jiraIssuePrefixOption);
+
 syncCmd.action(syncAction);
 
 export default syncCmd;

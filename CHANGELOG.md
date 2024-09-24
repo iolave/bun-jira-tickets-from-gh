@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Verbose environment variable for docker.
 - Docker compose volume to persist executions data.
+- Setting up the `--jira-issue-prefix=<STRING>` pre-appends the given prefix to jira issue titles.
 
 ## [v0.3.0]
 ### Added

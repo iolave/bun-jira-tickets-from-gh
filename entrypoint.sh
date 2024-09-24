@@ -20,6 +20,7 @@ bun run index.ts ${VERBOSE_FLAG} sync \
 	--jira-token=${JIRA_TOKEN} \
 	--jira-subdomain=${JIRA_SUBDOMAIN} \
 	--jira-project-key=${JIRA_PROJECT_KEY} \
+	--jira-issue-prefix=${JIRA_ISSUE_PREFIX} \
 	--transitions-to-wip=${JIRA_WIP_TRANSITIONS} \
 	--transitions-to-done=${JIRA_DONE_TRANSITIONS} \
 	--sleep-time=${SLEEP_TIME}
