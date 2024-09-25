@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Docker compose volume to persist executions data.
 - Setting up the `--jira-issue-prefix=<STRING>` pre-appends the given prefix to jira issue titles.
 
+### Changed
+- `github-projects` command was renamed to `github-project`.
+  - `listOrganization` sub command was renamed to `list`.
+  - Added `--user <string>` option to list user projects.
+
 ## [v0.3.0]
 ### Added
 - Github project state is now stored locally (experimental).

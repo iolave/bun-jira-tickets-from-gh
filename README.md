@@ -19,14 +19,18 @@ Make sure you have a GitHub project with the following fields:
 - `Repository`: Default field for repository info.
 
 ### Get the id of your github project
-#### Organization projects
-The cli is shipped with a utility that's going to help us search our GitHub project id.
+The cli is shipped with a utility that's going to help you to search a GitHub project id.
+
+#### List organization projects
 ```bash
-jira-tickets-from-gh --gh-token=GH_TOKEN github-projects listOrganization --org=YOU_ORG
+jira-tickets-from-gh --gh-token=GH_TOKEN github-project list --org=<ORG>
 ```
 
-#### User projects
+#### List user projects
 _NOT YET AVAIALBLE_
+```bash
+jira-tickets-from-gh --gh-token=GH_TOKEN github-project list --user=<GH_USER>
+```
 
 ### Get a Jira cloud token
 - Get a jira api token from your jira cloud account.
