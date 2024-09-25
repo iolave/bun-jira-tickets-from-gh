@@ -15,15 +15,21 @@ export default async function(): Promise<void> {
 	if (globalOpts.verbose) logger.enableVerboseMode();
 	const ghToken = util.getGithubToken(globalOpts);
 
+	logger.debug(logName, "parsed args", { opts });
+	logger.debug(logName, "creating github client");
+	const githubClient = new GithubClient(ghToken);
+
+
 	if ("user" in opts) {
-		util.error("not implemented yet :(");
+		logger.debug(logName, "retrieving user projects");
+		const [project, err] = await githubClient.projects.listUserProjects(opts.user);
+
+		if (err) throw err;
+
+		if (!logger.verbose()) console.log(JSON.stringify(project))
+		else logger.debug(logName, "success", project);
+		return util.success();
 	} else {
-		logger.debug(logName, "parsed args", { opts });
-
-		logger.debug(logName, "creating github client");
-		const githubClient = new GithubClient(ghToken);
-
-
 		logger.debug(logName, "retrieving organization projects");
 		const [project, err] = await githubClient.projects.listOrganizationProjects(opts.org);
 

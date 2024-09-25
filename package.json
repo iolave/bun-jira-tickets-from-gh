@@ -1,6 +1,6 @@
 {
   "name": "jira-tickets-from-gh",
-  "version": "0.4.0-beta.1",
+  "version": "0.4.0-beta.2",
   "module": "index.ts",
   "author": "iolave",
   "bin": {

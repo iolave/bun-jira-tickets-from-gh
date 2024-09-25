@@ -10,11 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Verbose environment variable for docker.
 - Docker compose volume to persist executions data.
 - Setting up the `--jira-issue-prefix=<STRING>` pre-appends the given prefix to jira issue titles.
+- New `--user <string>` option in the list github-projects command.
 
 ### Changed
 - `github-projects` command was renamed to `github-project`.
   - `listOrganization` sub command was renamed to `list`.
-  - Added `--user <string>` option to list user projects.
 
 ## [v0.3.0]
 ### Added
