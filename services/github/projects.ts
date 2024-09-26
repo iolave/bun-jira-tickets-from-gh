@@ -5,6 +5,7 @@ import type { IProjectItemUpdateField, UpdateProjectItemFieldResponse } from "./
 import updateProjectItemFieldQuery from "./update-project-item-field.query";
 import { itemField, parseItemStatus, type Item } from "../../models/github-project.types";
 import { z } from "zod";
+import listUserProjectsQuery from "./list-user-projects.query";
 
 async function updateProjectItemField(args: { token: string, projectId: string, fieldId: string, itemId: string, newValue: IProjectItemUpdateField }): PResult<UpdateProjectItemFieldResponse> {
 	const [reqRes, reqErr] = await sendGqlRequest<UpdateProjectItemFieldResponse>(args.token, updateProjectItemFieldQuery(args.projectId, args.fieldId, args.itemId, args.newValue));
@@ -47,6 +48,19 @@ async function listOrganizationProjects(token: string, org: string): PResult<Pro
 	if (!reqRes.data?.organization?.projectsV2?.nodes) return Err(new Error(JSON.stringify(reqRes)));
 
 	return Ok(reqRes.data.organization.projectsV2.nodes);
+}
+
+async function listUserProjects(token: string, user: string): PResult<ProjectList> {
+	const query = listUserProjectsQuery(user);
+
+	const [reqRes, reqErr] = await sendGqlRequest<{ data: { user: { projectsV2: { nodes: ProjectList } } } }>(token, query);
+
+	if (reqErr) return Err(reqErr);
+
+
+	if (!reqRes.data?.user?.projectsV2?.nodes) return Err(new Error(JSON.stringify(reqRes)));
+
+	return Ok(reqRes.data.user.projectsV2.nodes);
 }
 
 export type GithubProjectItem = {
@@ -209,6 +223,7 @@ export default {
 	updateProjectItemField,
 	getProjectFields,
 	listOrganizationProjects,
+	listUserProjects,
 	getProjectItems,
 	getProjectItems2,
 }
