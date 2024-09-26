@@ -27,7 +27,6 @@ jira-tickets-from-gh --gh-token=GH_TOKEN github-project list --org=<ORG>
 ```
 
 #### List user projects
-_NOT YET AVAIALBLE_
 ```bash
 jira-tickets-from-gh --gh-token=GH_TOKEN github-project list --user=<GH_USER>
 ```
@@ -100,6 +99,7 @@ jira-tickets-from-gh --gh-token=TOKEN --jira-token=TOKEN sync \
 | JIRA_PROJECT_KEY      | `--jira-project-key` |
 | JIRA_WIP_TRANSITIONS  | `--transitions-to-wip` |
 | JIRA_DONE_TRANSITIONS | `--transitions-to-done` |
+| JIRA_ISSUE_PREFIX	| `--jira-issue-prefix` |
 | SLEEP_TIME            | `--sleep-time` |
 | VERBOSE               | if value is set to `true` then `-v` option is mapped |
 
