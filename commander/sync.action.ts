@@ -51,13 +51,13 @@ export default async function(): Promise<void> {
 		if (remoteItemsErr) return util.error(remoteItemsErr);
 		const upsertErr = await githubProjectModel.upsertItems(project, ...remoteItems);
 		if (upsertErr) return util.error(upsertErr);
-		for (const item of githubProjectModel.getItemsWithUrl(project)) {
+		for (const item of githubProjectModel.getItemsWithUrl(project, actionOpts.jiraSubdomain)) {
 			await updateJiraIssueFromGhTaskWithUrl({
 				jira,
 				item,
 			});
 		}
-		for (const item of githubProjectModel.getItemsWithoutUrl(project)) {
+		for (const item of githubProjectModel.getItemsWithoutUrl(project, actionOpts.jiraSubdomain)) {
 			await createJiraIssueFromGhTaskWithoutUrl({
 				jira,
 				gh,

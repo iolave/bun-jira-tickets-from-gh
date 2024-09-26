@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - New `--user <string>` option in the list github-projects command.
 
 ### Changed
+- Retrieving items from the local storage with(out) an url now checks if the url field is a valid url. This will cause that item's urls that are invalid are going to be repleaced with a valid url that will point to a new jira issue.  
 - `github-projects` command was renamed to `github-project`.
   - `listOrganization` sub command was renamed to `list`.
 
