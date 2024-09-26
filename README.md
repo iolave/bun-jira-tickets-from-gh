@@ -103,6 +103,21 @@ jira-tickets-from-gh --gh-token=TOKEN --jira-token=TOKEN sync \
 | SLEEP_TIME            | `--sleep-time` |
 | VERBOSE               | if value is set to `true` then `-v` option is mapped |
 
+### Example env file
+```
+GITHUB_TOKEN=TOKEN
+GH_PROJECT_ID=PROJECT_ID
+GH_USERS_MAP=GH_USER:JIRA_EMAIL
+JIRA_TOKEN=TOKEN
+JIRA_SUBDOMAIN=SUBDOMAIN
+JIRA_PROJECT_KEY=TEST
+JIRA_WIP_TRANSITIONS=2
+JIRA_DONE_TRANSITIONS=3
+JIRA_ISSUE_PREFIX=[BACKEND]
+SLEEP_TIME=600000
+VERBOSE=false
+```
+
 ### Build
 ```bash
 docker compose build
