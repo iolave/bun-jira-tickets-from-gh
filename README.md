@@ -49,13 +49,14 @@ Use `jira-tickets-from-gh sync [Options]` command to sync a GitHub project with 
 
 | Option                                      | Required | Description |
 |---------------------------------------------|----------|-------------|
-|`--transitions-to-wip <NUMBER,...>`          | `false`  | list of jira issue transitions in order to have a wip task |
-|`--transitions-to-done <NUMBER,...>`         | `false`  | list of jira issue transitions in order to have a done task |
+|`--transitions-to-wip <number,...>`          | `false`  | list of jira issue transitions in order to have a wip task |
+|`--transitions-to-done <number,...>`         | `false`  | list of jira issue transitions in order to have a done task |
 |`--gh-assignees-map <GH_USER:JIRA_USER,...>` | `false`  | map of GitHub users to Jira ones (email) |
 |`--sleep-time <ms>`			      | `false`  | sleep time between executions. If not specified the program will run once |
-|`--gh-project-id <STRING>`                   | `true`   | Github project ID |
-|`--jira-project-key <STRING>`                | `true`   | Jira project KEY |
-|`--jira-subdomain <STRING>`		      | `true`   | Jira subdomain |
+|`--gh-project-id <string>`                   | `true`   | Github project ID |
+|`--jira-project-key <string>`                | `true`   | Jira project KEY |
+|`--jira-subdomain <string>`		      | `true`   | Jira subdomain |
+|`--jira-issue-prefix <string>`		      | `false`	 | Prefix to be preappended to jira issues titles |
 |`--help`				      | `false`  | display help for command |
 
 ### Example
