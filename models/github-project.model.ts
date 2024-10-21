@@ -21,12 +21,26 @@ async function getProject(id: string): Promise<Project> {
 	return loadFile(id);
 }
 
-function getItemsWithoutUrl(project: Project): Item[] {
-	return project.items.filter(i => i[itemField.JIRA_URL].value === undefined || i[itemField.JIRA_URL].value === null)
+function getItemsWithoutUrl(project: Project, jiraSubdomain: string): Item[] {
+	const urlPrefix = `https://${jiraSubdomain}.atlassian.net/browse/`;
+
+	return project.items.filter(i => {
+		if (i[itemField.JIRA_URL].value === undefined) return true;
+		if (i[itemField.JIRA_URL].value === null) return true;
+
+		return !i[itemField.JIRA_URL].value.startsWith(urlPrefix);
+	});
 }
 
-function getItemsWithUrl(project: Project): Item[] {
-	return project.items.filter(i => i[itemField.JIRA_URL].value !== undefined || i[itemField.JIRA_URL].value !== null)
+function getItemsWithUrl(project: Project, jiraSubdomain: string): Item[] {
+	const urlPrefix = `https://${jiraSubdomain}.atlassian.net/browse/`;
+
+	return project.items.filter(i => {
+		if (i[itemField.JIRA_URL].value === undefined) return false;
+		if (i[itemField.JIRA_URL].value === null) return false;
+
+		return i[itemField.JIRA_URL].value.startsWith(urlPrefix);
+	});
 }
 
 function findNewItems(project: Project, items: Item[]): Item[] {

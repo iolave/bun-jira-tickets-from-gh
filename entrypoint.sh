@@ -9,13 +9,19 @@ for to_change in $egrep_res; do
 	eval "export ${env_key}=${secret}"
 done
 
-bun run index.ts sync \
+if [ "${VERBOSE}" = "true" ]; then
+	VERBOSE_FLAG="-v"
+fi
+
+bun run index.ts ${VERBOSE_FLAG} sync \
 	--gh-token=${GH_TOKEN} \
 	--gh-project-id=${GH_PROJECT_ID} \
 	--gh-assignees-map=${GH_USERS_MAP} \
 	--jira-token=${JIRA_TOKEN} \
 	--jira-subdomain=${JIRA_SUBDOMAIN} \
 	--jira-project-key=${JIRA_PROJECT_KEY} \
+	--jira-issue-prefix=${JIRA_ISSUE_PREFIX} \
+	--jira-estiamte-field=${JIRA_ESTIMATE_FIELD} \
 	--transitions-to-wip=${JIRA_WIP_TRANSITIONS} \
 	--transitions-to-done=${JIRA_DONE_TRANSITIONS} \
 	--sleep-time=${SLEEP_TIME}

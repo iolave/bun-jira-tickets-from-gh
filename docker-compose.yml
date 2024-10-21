@@ -1,5 +1,7 @@
 services:
   jira-tickets-from-gh:
+    volumes:
+      - data:/home/bun/app/data
     build:
       context: .
       dockerfile: ./Dockerfile
@@ -27,7 +29,10 @@ services:
       JIRA_PROJECT_KEY: ${JIRA_PROJECT_KEY}
       JIRA_WIP_TRANSITIONS: ${JIRA_WIP_TRANSITIONS}
       JIRA_DONE_TRANSITIONS: ${JIRA_DONE_TRANSITIONS}
+      JIRA_ISSUE_PREFIX: ${JIRA_ISSUE_PREFIX}
+      JIRA_ESTIMATE_FIELD: ${JIRA_ESTIMATE_FIELD}
       SLEEP_TIME: ${SLEEP_TIME}
+      VERBOSE: ${VERBOSE}
     secrets:
       - jira_token
       - github_token
@@ -36,4 +41,5 @@ secrets:
     environment: "JIRA_TOKEN"
   github_token:
     environment: "GITHUB_TOKEN"
-
+volumes:
+  data:

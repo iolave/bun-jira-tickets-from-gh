@@ -14,6 +14,7 @@ export default async function(): Promise<void> {
 	if (globalOpts.verbose) logger.enableVerboseMode();
 
 	const actionOpts = syncCmd.opts<SyncOptions>();
+	const { jiraEstimateField } = actionOpts;
 
 	logger.debug(logname, "parsed options", { actionOpts });
 
@@ -51,18 +52,19 @@ export default async function(): Promise<void> {
 		if (remoteItemsErr) return util.error(remoteItemsErr);
 		const upsertErr = await githubProjectModel.upsertItems(project, ...remoteItems);
 		if (upsertErr) return util.error(upsertErr);
-		for (const item of githubProjectModel.getItemsWithUrl(project)) {
+		for (const item of githubProjectModel.getItemsWithUrl(project, actionOpts.jiraSubdomain)) {
 			await updateJiraIssueFromGhTaskWithUrl({
 				jira,
 				item,
 			});
 		}
-		for (const item of githubProjectModel.getItemsWithoutUrl(project)) {
+		for (const item of githubProjectModel.getItemsWithoutUrl(project, actionOpts.jiraSubdomain)) {
 			await createJiraIssueFromGhTaskWithoutUrl({
 				jira,
 				gh,
 				project,
 				item,
+				jiraEstimateField,
 			})
 		}
 
@@ -129,23 +131,42 @@ async function createJiraIssueFromGhTaskWithoutUrl(args: {
 	jira: JiraClient,
 	item: Item,
 	project: Project,
+	jiraEstimateField?: string;
 }) {
 	const { gh, jira, item, project } = args;
 	const actionOpts = syncCmd.opts<SyncOptions>();
+
+	if (!item[itemField.STATUS]) {
+		logger.warn(logname, "item does not have any status, assuming it is not ok and skipping creation", { itemId: item.id, title: item[itemField.TITLE].value })
+		return;
+	}
 
 	if (!item[itemField.JIRA_ISSUE_TYPE].value) {
 		logger.warn(logname, "item does not have an issue type, skipping creation", { itemId: item.id, title: item[itemField.TITLE].value })
 		return;
 	}
 
-	const accountId = actionOpts.ghAssigneesMap ? actionOpts.ghAssigneesMap[item[itemField.ASSIGNEES].value.pop() ?? ""] : undefined
+	const accountId = actionOpts.ghAssigneesMap ? actionOpts.ghAssigneesMap[item[itemField.ASSIGNEES].value.pop() ?? ""] : undefined;
 
-	const [createRes, createErr] = await jira.issues.create({
+	let summary: string;
+	if (actionOpts.jiraIssuePrefix && actionOpts.jiraIssuePrefix !== "") {
+		summary = `${actionOpts.jiraIssuePrefix} ${item[itemField.TITLE].value}`;
+	} else {
+		summary = item[itemField.TITLE].value;
+	}
+
+	const createOpts = {
 		projectKey: actionOpts.jiraProjectKey,
-		summary: item[itemField.TITLE].value,
+		summary,
 		issueName: item[itemField.JIRA_ISSUE_TYPE].value,
 		accountId,
+	}
+
+	if (actionOpts.jiraEstimateField && item[itemField.ESTIMATE].value) Object.assign(createOpts, {
+		storyPointsField: { name: actionOpts.jiraEstimateField, points: item[itemField.ESTIMATE].value }
 	});
+
+	const [createRes, createErr] = await jira.issues.create(createOpts);
 
 	if (createErr) {
 		logger.error(logname, "unable to create jira issue", { itemId: item.id, err: createErr });

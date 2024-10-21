@@ -1,4 +1,4 @@
-import { Err, Ok, type PResult } from "@iolave/utils/results";
+import { Err, Ok, type PResult, type Result } from "@iolave/utils/results";
 import { safePromise } from "@iolave/utils/functions";
 
 const buildTransitionIssueBody = (transitionId: number) => JSON.stringify({
@@ -32,25 +32,45 @@ async function transitionIssue(token: string, subdomain: string, issueKey: strin
 	return undefined;
 }
 
-function buildIssueBody(args: { projectKey: string, summary: string, issueName: string, accountId?: string, content: any }): string {
-	return JSON.stringify({
-		fields: {
-			issuetype: { name: args.issueName },
-			project: { key: args.projectKey },
-			fixVersions: [],
-			priority: { id: "3" },
-			labels: [],
-			assignee: { accountId: args.accountId },
-			components: [],
-			description: { type: "doc", version: 1, content: args.content },
-			attachment: [],
-			summary: args.summary,
-		}
-	});
+function buildIssueBody(args: { projectKey: string, summary: string, issueName: string, accountId?: string, content: any, storyPointsField?: { name: string, points: number } }): string {
+	const fields = {
+		issuetype: { name: args.issueName },
+		project: { key: args.projectKey },
+		fixVersions: [],
+		priority: { id: "3" },
+		labels: [],
+		assignee: { accountId: args.accountId },
+		components: [],
+		description: { type: "doc", version: 1, content: args.content },
+		attachment: [],
+		summary: args.summary,
+	}
+
+	if (args.storyPointsField)
+		Object.assign(fields, { [`${args.storyPointsField.name}`]: args.storyPointsField.points });
+
+	return JSON.stringify({ fields });
 }
 
-async function create(args: { token: string, subdomain: string, projectKey: string, summary: string, issueName: string, accountId?: string, content: any }): PResult<{ issueId: string, issueKey: string, issueUrl: string }> {
-	const { token, subdomain, projectKey, summary, issueName, accountId, content } = args;
+type CreateResponse = {
+	issueId: string,
+	issueKey: string,
+	issueUrl: string,
+}
+
+type CreateOptions = {
+	token: string,
+	subdomain: string,
+	projectKey: string,
+	summary: string,
+	issueName: string,
+	accountId?: string,
+	content: any,
+	storyPointsField?: { name: string, points: number },
+}
+
+async function create(args: CreateOptions): Promise<Result<CreateResponse>> {
+	const { token, subdomain, projectKey, summary, issueName, accountId, content, storyPointsField } = args;
 	const headers = new Headers();
 	headers.append("authorization", `Basic ${token}`);
 	headers.append("content-type", `application/json`);
@@ -60,10 +80,11 @@ async function create(args: { token: string, subdomain: string, projectKey: stri
 		headers,
 		body: buildIssueBody({
 			projectKey,
-			summary: `[JTFG] ${summary}`,
+			summary,
 			issueName,
 			accountId,
 			content,
+			storyPointsField,
 		}),
 	};
 

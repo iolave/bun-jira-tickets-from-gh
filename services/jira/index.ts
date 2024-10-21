@@ -21,7 +21,7 @@ export default class JiraClient {
 	}
 
 	public issues = {
-		create: (args: { projectKey: string, summary: string, accountId?: string, issueName: string }) => {
+		create: (args: { projectKey: string, summary: string, accountId?: string, issueName: string, storyPointsField: { name: string, points?: number }, }) => {
 			return issues.create({
 				token: this.token,
 				subdomain: this.subdomain,

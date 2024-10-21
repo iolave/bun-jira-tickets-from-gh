@@ -1,10 +1,23 @@
 import { ExitStatus } from "typescript";
-import type { ProgramGlobalOptions } from ".";
+import environment from "./environment";
+import options, { type ProgramGlobalOptions } from "./index.options";
+import { Option } from "commander";
 
 function error(err: string | Error): never {
 	if (err instanceof Error) console.log(`error: ${err.message}`)
 	else console.log(`error: ${err}`);
 	process.exit(ExitStatus.DiagnosticsPresent_OutputsSkipped);
+}
+
+function checkOneOfOptions(options: Record<string, any>, ...oneOf: Option[]): void {
+	for (const i of oneOf) {
+		if (i.name() in options) return;
+	}
+
+	const oneOfAsString = oneOf.map(i => i.flags).join(", ");
+	const message = `specify one of the following options "${oneOfAsString}"`;
+
+	return error(message);
 }
 
 function success(): never {
@@ -28,16 +41,14 @@ function numberArrayFromString(input: string, separator: string): [number[], nul
 
 function getJiraToken(opts: ProgramGlobalOptions): string {
 	if (opts.jiraToken) return opts.jiraToken;
-	if (Bun.env["JIRA_TOKEN"]) return Bun.env["JIRA_TOKEN"];
 
-	return error(`either set "JIRA_TOKEN" environment variable or the --jira-token option`)
+	return error(`provide a jira cloud token via "${environment.jiraToken}" environment variable or the "${options.jiraToken.flags}" option`);
 }
 
 function getGithubToken(opts: ProgramGlobalOptions): string {
 	if (opts.ghToken) return opts.ghToken;
-	if (Bun.env["GITHUB_TOKEN"]) return Bun.env["GITHUB_TOKEN"];
 
-	return error(`either set "GITHUB_TOKEN" environment variable or the --gh-token option`)
+	return error(`provide a GitHub token via "${environment.githubToken}" environment variable or the "${options.githubToken.flags}" option`);
 }
 
 export default {
@@ -46,4 +57,5 @@ export default {
 	numberArrayFromString,
 	getGithubToken,
 	getJiraToken,
+	checkOneOfOptions,
 }
