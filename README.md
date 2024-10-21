@@ -5,7 +5,11 @@ I was forced by my job to use Jira to keep track of tasks, but I kept forgetting
 
 > [!WARNING]
 > All versions released prior to `v1.0.0` are to be considered [breaking changes](https://semver.org/#how-do-i-know-when-to-release-100) (I'll try my best to not push breaking changes btw).
-To install dependencies:
+
+## Installation
+```bash
+bun install -g jira-tickets-from-gh
+```
 
 ## Pre-requisites for running the CLI
 ### A GitHub project with required fields
@@ -40,23 +44,18 @@ jira-tickets-from-gh --gh-token=GH_TOKEN github-project list --user=<GH_USER>
 - `JIRA_TOKEN`: Basic authorization token, to form it `base64([JIRA_CLOUD_ACCOUNT]:[JIRA_API_KEY])`
 
 ## Using the CLI to sync projects
-Install the CLI
-```bash
-bun install -g jira-tickets-from-gh
-```
-
-Use `jira-tickets-from-gh sync [Options]` command to sync a GitHub project with a Jira cloud project.
+Use `jira-tickets-from-gh sync [options]` command to sync a GitHub project with a Jira cloud project.
 
 | Option                                      | Required | Description |
 |---------------------------------------------|----------|-------------|
 |`--transitions-to-wip <number,...>`          | `false`  | list of jira issue transitions in order to have a wip task |
 |`--transitions-to-done <number,...>`         | `false`  | list of jira issue transitions in order to have a done task |
-|`--gh-assignees-map <GH_USER:JIRA_USER,...>` | `false`  | map of GitHub users to Jira ones (email) |
+|`--gh-assignees-map <gh_user:jira_user,...>` | `false`  | map of GitHub users to Jira ones (email) |
 |`--sleep-time <ms>`			      | `false`  | sleep time between executions. If not specified the program will run once |
 |`--gh-project-id <string>`                   | `true`   | Github project ID |
 |`--jira-project-key <string>`                | `true`   | Jira project KEY |
 |`--jira-subdomain <string>`		      | `true`   | Jira subdomain |
-|`--jira-issue-prefix <string>`		      | `false`	 | Prefix to be preappended to jira issues titles |
+|`--jira-estimate-field <string>`	      | `false`  | Jira field name within it's api response that stores story points (estimate) |
 |`--help`				      | `false`  | display help for command |
 
 ### Example
@@ -101,6 +100,7 @@ jira-tickets-from-gh --gh-token=TOKEN --jira-token=TOKEN sync \
 | JIRA_WIP_TRANSITIONS  | `--transitions-to-wip` |
 | JIRA_DONE_TRANSITIONS | `--transitions-to-done` |
 | JIRA_ISSUE_PREFIX	| `--jira-issue-prefix` |
+| JIRA_ESTIMATE_FIELD	| `--jira-estimate-field` |
 | SLEEP_TIME            | `--sleep-time` |
 | VERBOSE               | if value is set to `true` then `-v` option is mapped |
 
@@ -115,6 +115,7 @@ JIRA_PROJECT_KEY=TEST
 JIRA_WIP_TRANSITIONS=2
 JIRA_DONE_TRANSITIONS=3
 JIRA_ISSUE_PREFIX=[BACKEND]
+JIRA_ESTIMATE_FIELD=customfield_10016
 SLEEP_TIME=600000
 VERBOSE=false
 ```
