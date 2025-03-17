@@ -289,6 +289,7 @@ func syncProject(args Cmd, config Config, projPos int, m *models.Models, gh *git
 				*p,
 				*is,
 				assigneesMap,
+				epics,
 			); err != nil {
 				exitFromErr(err)
 			}
@@ -300,12 +301,74 @@ func syncProject(args Cmd, config Config, projPos int, m *models.Models, gh *git
 		log.WithFields(logrus.Fields{"sleepTime": *config.SleepTime, "project": projectCfg.Name}).Infoln("sleeping")
 		time.Sleep(time.Duration(*config.SleepTime) * time.Millisecond)
 
+		// Checking for epics diff and update remote if necessary
+		log.WithFields(logrus.Fields{"project": projectCfg.Name}).Debugln("retrieving github project fields")
+		fieldsResult, _, err := gh.GetProjectFields(projectCfg.Github.ProjectID)
+		if err != nil {
+			log.WithFields(logrus.Fields{"err": err, "project": projectCfg.Name}).Errorln("failed retrieving github project fields")
+			exitFromErr(err)
+		}
+
+		for _, v := range fieldsResult.Data.Node.Fields.Nodes {
+			switch v.Name {
+			case models.FIELD_NAME_EPIC:
+				epics, err = getProjectEpics(jc, projectCfg.Jira.ProjectKey)
+				if err != nil {
+					log.WithFields(logrus.Fields{
+						"error":   err,
+						"project": projectCfg.Name,
+					}).Errorln("failed to retrieve epics")
+				} else {
+					log.WithFields(logrus.Fields{
+						"epics":   epics,
+						"project": projectCfg.Name,
+					}).Debugln("got epics")
+				}
+
+				if v.Options == nil {
+					err = errors.New("Epic field is not of type select")
+					log.WithFields(logrus.Fields{
+						"error":   err.Error(),
+						"project": projectCfg.Name,
+					}).Errorln("invalid field type")
+					exitFromErr(err)
+				}
+
+				shouldUpdateOptions := false
+				opts := []string{}
+				for _, epic := range epics {
+					opts = append(opts, epic.Title)
+					found := false
+					for _, opt := range *v.Options {
+						if strings.TrimSpace(epic.Title) == strings.TrimSpace(opt.Name) {
+							found = true
+							break
+						}
+					}
+
+					if !found {
+						shouldUpdateOptions = true
+					}
+				}
+				if shouldUpdateOptions {
+					if _, err = gh.UpdateProjectFieldOptions(v.ID, opts); err != nil {
+						log.WithFields(logrus.Fields{
+							"error":   err.Error(),
+							"project": projectCfg.Name,
+						}).Errorln("unable to update Epic field")
+						exitFromErr(err)
+					}
+				}
+			}
+		}
+
 		log.WithFields(logrus.Fields{"project": projectCfg.Name}).Infoln("refreshing remote github issues")
 		remoteIssuesResult, _, err := gh.GetProjectItems(p.ID, getGHFields())
 		if err != nil {
 			log.WithFields(logrus.Fields{"err": err, "project": projectCfg.Name}).Errorln("refreshing remote github issues fields")
 			continue
 		}
+		log.WithFields(logrus.Fields{"issues": remoteIssuesResult}).Debugln("got issues from gh")
 
 		var remoteIssues []models.RemoteIssue
 		remoteIssuesResult.UnmarshallItems(&remoteIssues)
@@ -349,6 +412,7 @@ func syncProject(args Cmd, config Config, projPos int, m *models.Models, gh *git
 				*p,
 				*ri.ToIssue(p.ID),
 				assigneesMap,
+				epics,
 			)
 			if err != nil {
 				log.WithFields(logrus.Fields{
@@ -386,6 +450,7 @@ func syncProject(args Cmd, config Config, projPos int, m *models.Models, gh *git
 					*p,
 					*issueDiff.Issue,
 					assigneesMap,
+					epics,
 				)
 				continue
 			}
@@ -399,6 +464,7 @@ func syncProject(args Cmd, config Config, projPos int, m *models.Models, gh *git
 					*p,
 					*issueDiff.Issue,
 					assigneesMap,
+					epics,
 				)
 				continue
 			}
@@ -418,6 +484,7 @@ func syncProject(args Cmd, config Config, projPos int, m *models.Models, gh *git
 						issueDiff.Issue.JiraURL,
 						issueDiff.Issue.JiraIssueType,
 						issueDiff.Issue.Repository,
+						issueDiff.Issue.Epic,
 						issueDiff.Issue.Estimate,
 						&issueDiff.Issue.Assignees,
 					); err != nil {
@@ -436,6 +503,7 @@ func syncProject(args Cmd, config Config, projPos int, m *models.Models, gh *git
 						issueDiff.Issue.JiraURL,
 						issueDiff.Issue.JiraIssueType,
 						issueDiff.Issue.Repository,
+						issueDiff.Issue.Epic,
 						issueDiff.Issue.Estimate,
 						&issueDiff.Issue.Assignees,
 					); err != nil {
@@ -455,6 +523,7 @@ func syncProject(args Cmd, config Config, projPos int, m *models.Models, gh *git
 						issueDiff.Issue.JiraURL,
 						issueDiff.Issue.JiraIssueType,
 						issueDiff.Issue.Repository,
+						issueDiff.Issue.Epic,
 						issueDiff.Issue.Estimate,
 						&issueDiff.Issue.Assignees,
 					); err != nil {
@@ -482,15 +551,31 @@ func syncProject(args Cmd, config Config, projPos int, m *models.Models, gh *git
 			return true
 		})
 		for _, newIssue := range newIssues {
-			createJiraIssueFromGhIssueWithoutUrl(
-				config,
-				projPos,
-				jc,
-				gh,
-				*p,
-				*newIssue.ToIssue(p.ID),
-				assigneesMap,
-			)
+			var err error = nil
+			log.WithFields(logrus.Fields{"issue": newIssue}).Debugln("new issue to be created")
+
+			if newIssue.JiraUrl.Text == nil {
+				err = createJiraIssueFromGhIssueWithoutUrl(
+					config,
+					projPos,
+					jc,
+					gh,
+					*p,
+					*newIssue.ToIssue(p.ID),
+					assigneesMap,
+					epics,
+				)
+			} else {
+				err = updateJiraIssueFromGhIssueWithUrl(
+					config,
+					projPos,
+					jc,
+					*newIssue.ToIssue(p.ID),
+				)
+			}
+			if err != nil {
+				log.WithFields(logrus.Fields{"error": err, "issue": newIssue}).Errorln("failed to create/update jira issue")
+			}
 		}
 	}
 }
@@ -657,6 +742,7 @@ func createJiraIssueFromGhIssueWithoutUrl(
 	p models.Project,
 	is models.Issue,
 	assignees map[string]string,
+	epics []epic,
 ) error {
 	if is.Status == nil {
 		return errors.New("item does not have any status, assuming it is not ok and skipping creation")
@@ -675,10 +761,24 @@ func createJiraIssueFromGhIssueWithoutUrl(
 		summary = is.Title
 	}
 
+	epicKey := ""
+	if is.Epic != nil {
+		for _, epic := range epics {
+			if epic.Title == *is.Epic {
+				epicKey = epic.Key
+				break
+			}
+
+		}
+	}
+
 	jiraIssue := &jiramodels.IssueScheme{Fields: &jiramodels.IssueFieldsScheme{
 		IssueType: &jiramodels.IssueTypeScheme{Name: *is.JiraIssueType},
-		Project:   &jiramodels.ProjectScheme{Key: config.Projects[projPos].Jira.ProjectKey},
-		Summary:   summary,
+		Parent: &jiramodels.ParentScheme{
+			Key: epicKey,
+		},
+		Project: &jiramodels.ProjectScheme{Key: config.Projects[projPos].Jira.ProjectKey},
+		Summary: summary,
 	}}
 	jiraIssueCustomFields := &jiramodels.CustomFields{}
 	if estimateField := config.Projects[projPos].Jira.EstimateField; estimateField != nil && is.Estimate != nil {
@@ -707,6 +807,7 @@ func createJiraIssueFromGhIssueWithoutUrl(
 		&url,
 		is.JiraIssueType,
 		is.Repository,
+		is.Epic,
 		is.Estimate,
 		&is.Assignees,
 	); err != nil {

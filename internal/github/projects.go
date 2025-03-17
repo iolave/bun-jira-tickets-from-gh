@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/google/uuid"
 )
@@ -99,6 +100,30 @@ type GetProjectFieldsResult struct {
 			} `json:"fields"`
 		} `json:"node"`
 	} `json:"data"`
+}
+
+func (r GetProjectFieldsResult) GetOptionId(fieldName, name string) (id string, err error) {
+	if r.Errors != nil {
+		err = getErrorFromErrors(r.Errors)
+		return "", err
+	}
+
+	name = strings.TrimSpace(name)
+	for _, v := range r.Data.Node.Fields.Nodes {
+		if v.Name == fieldName {
+			if v.Options == nil {
+				return "", errors.New("field is not of type single select")
+			}
+
+			for _, opt := range *v.Options {
+				if strings.TrimSpace(opt.Name) == name {
+					return opt.ID, nil
+				}
+			}
+		}
+
+	}
+	return "", errors.New("option not found")
 }
 
 func (c *GitHubClient) GetProjectFields(id string) (GetProjectFieldsResult, *http.Response, error) {

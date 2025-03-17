@@ -39,6 +39,10 @@ type RemoteIssue struct {
 			} `json:"nodes"`
 		} `json:"users"`
 	} `json:"assignees"`
+	Epic *struct {
+		Name     string `json:"name"`
+		OptionID string `json:"optionId"`
+	} `json:"epic"`
 }
 
 func (ri RemoteIssue) ToIssue(projectId string) *Issue {
@@ -60,6 +64,9 @@ func (ri RemoteIssue) ToIssue(projectId string) *Issue {
 	}
 	issue.Repository = ri.Repository.Repository.Text
 	issue.Assignees = assinees
+	if ri.Epic != nil {
+		issue.Epic = &ri.Epic.Name
+	}
 
 	return issue
 }
@@ -68,7 +75,13 @@ type Issues struct {
 	models *Models
 }
 
-func (service *Issues) Upsert(projectId, id, title string, status *IssueStatus, jiraUrl, jiraIssueType, repo *string, estimate *int, assignees *[]string) (*Issue, error) {
+func (service *Issues) Upsert(
+	projectId, id, title string,
+	status *IssueStatus,
+	jiraUrl, jiraIssueType, repo, epic *string,
+	estimate *int,
+	assignees *[]string,
+) (*Issue, error) {
 	var assigneesStr *string = nil
 	if assignees != nil {
 		joined := strings.Join(*assignees, ";")
@@ -83,8 +96,9 @@ func (service *Issues) Upsert(projectId, id, title string, status *IssueStatus, 
 			estimate,
 			status,
 			assignees,
-			repository
-		) values(?, ?, ?, ?, ?, ?, ?, ?, ?)`
+			repository,
+			epic
+		) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 	_, err := service.models.db.Exec(
 		stmt,
 		projectId,
@@ -96,6 +110,7 @@ func (service *Issues) Upsert(projectId, id, title string, status *IssueStatus, 
 		status,
 		assigneesStr,
 		repo,
+		epic,
 	)
 
 	if err != nil {
@@ -116,6 +131,7 @@ func (service *Issues) Upsert(projectId, id, title string, status *IssueStatus, 
 	issue.Repository = repo
 	issue.Estimate = estimate
 	issue.Status = status
+	issue.Epic = epic
 
 	return issue, nil
 }
@@ -162,11 +178,12 @@ func (service *Issues) UpsertMany(projectId string, issues []RemoteIssue) ([]*Is
 		estimate,
 		status,
 		assignees,
-		repository
-	) VALUES (?,?,?,?,?,?,?,?,?)`
+		repository,
+		epic
+	) VALUES (?,?,?,?,?,?,?,?,?,?)`
 	for _, v := range resultIssues {
 		assigneesStr := strings.Join(v.Assignees, ";")
-		_, err := tx.Exec(stmt, v.GitHubProjectID, v.GitHubID, v.JiraURL, v.JiraIssueType, v.Title, v.Estimate, v.Status, assigneesStr, v.Repository)
+		_, err := tx.Exec(stmt, v.GitHubProjectID, v.GitHubID, v.JiraURL, v.JiraIssueType, v.Title, v.Estimate, v.Status, assigneesStr, v.Repository, v.Epic)
 		if err != nil {
 			return nil, err
 		}
@@ -209,7 +226,8 @@ func (p *Issues) Get(githubProjectId, githubId string) (*Issue, error) {
 		estimate,
 		status,
 		assignees,
-		repository
+		repository,
+		epic
 	FROM issues
 	WHERE id = "%s"
 	AND projectId = "%s"
@@ -234,6 +252,7 @@ func (p *Issues) Get(githubProjectId, githubId string) (*Issue, error) {
 		&issue.Status,
 		&assigneesStr,
 		&issue.Repository,
+		&issue.Epic,
 	)
 	if err != nil {
 		return nil, err
@@ -263,7 +282,8 @@ func (p *Issues) GetAll(githubProjectId string) ([]*Issue, error) {
 		estimate,
 		status,
 		assignees,
-		repository
+		repository,
+		epic
 	FROM issues
 	WHERE projectId = "%s"
 	`, githubProjectId)
@@ -287,6 +307,7 @@ func (p *Issues) GetAll(githubProjectId string) ([]*Issue, error) {
 			&issue.Status,
 			&assigneesStr,
 			&issue.Repository,
+			&issue.Epic,
 		)
 		if err != nil {
 			return nil, err
@@ -341,6 +362,9 @@ func (s *Issues) GetThoseWithDiff(projectId string, issues []RemoteIssue) (diff 
 			issue.Estimate = remoteIssue.Estimate.Num
 			issue.Repository = remoteIssue.Repository.Repository.Text
 			issue.Assignees = assignees
+			if &remoteIssue.Epic != nil {
+				issue.Epic = &remoteIssue.Epic.Name
+			}
 			diff = append(diff, Diff{
 				PrevStatus: localIssue.Status,
 				NewStatus:  IssueStatus(remoteIssue.Status.Name),
@@ -367,7 +391,8 @@ func (p *Issues) GetWithoutUrl(githubProjectId string) ([]*Issue, error) {
 		estimate,
 		status,
 		assignees,
-		repository
+		repository,
+		epic
 	FROM issues
 	WHERE projectId = "%s"
 	AND jiraUrl IS NULL
@@ -392,6 +417,7 @@ func (p *Issues) GetWithoutUrl(githubProjectId string) ([]*Issue, error) {
 			&issue.Status,
 			&assigneesStr,
 			&issue.Repository,
+			&issue.Epic,
 		)
 		if err != nil {
 			return nil, err
@@ -434,7 +460,8 @@ func (p *Issues) GetWithUrl(githubProjectId string) ([]*Issue, error) {
 		estimate,
 		status,
 		assignees,
-		repository
+		repository,
+		epic
 	FROM issues
 	WHERE projectId = "%s"
 	AND jiraUrl IS NOT NULL
@@ -459,6 +486,7 @@ func (p *Issues) GetWithUrl(githubProjectId string) ([]*Issue, error) {
 			&issue.Status,
 			&assigneesStr,
 			&issue.Repository,
+			&issue.Epic,
 		)
 		if err != nil {
 			return nil, err
@@ -565,4 +593,5 @@ type Issue struct {
 	Status          *IssueStatus
 	Assignees       []string
 	Repository      *string
+	Epic            *string
 }

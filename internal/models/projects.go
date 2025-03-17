@@ -30,8 +30,25 @@ type Project struct {
 	} // project fields ids within github
 }
 
-func (p Project) UpsertIssue(id, title string, status *IssueStatus, jiraUrl, jiraIssueType, repo *string, estimate *int, assignees *[]string) (*Issue, error) {
-	return p.models.Issues.Upsert(p.ID, id, title, status, jiraUrl, jiraIssueType, repo, estimate, assignees)
+func (p Project) UpsertIssue(
+	id, title string,
+	status *IssueStatus,
+	jiraUrl, jiraIssueType, repo, epic *string,
+	estimate *int,
+	assignees *[]string,
+) (*Issue, error) {
+	return p.models.Issues.Upsert(
+		p.ID,
+		id,
+		title,
+		status,
+		jiraUrl,
+		jiraIssueType,
+		repo,
+		epic,
+		estimate,
+		assignees,
+	)
 }
 
 func (p Project) UpsertManyIssues(issues []RemoteIssue) ([]*Issue, error) {

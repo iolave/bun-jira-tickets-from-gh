@@ -54,6 +54,7 @@ func Initialize() (*Models, error) {
 		status		string,
 		assignees	string,
 		repository	string,
+		epic		string,
 		primary key (projectId, id)
 	)`)
 	if err != nil {
