@@ -239,7 +239,9 @@ func (c *GitHubClient) GetProjectItems(id string, fields []ProjectField) (GetPro
 				%s
 			}
 		}
-	}}}}`, id, queryFields)
+	}}}`, id, queryFields)
+
+	fmt.Println(query)
 
 	var result GetProjectItemsResult
 

@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -12,8 +13,8 @@ import (
 	"sync"
 	"time"
 
-	jira "github.com/ctreminiom/go-atlassian/jira/v3"
-	jiramodels "github.com/ctreminiom/go-atlassian/pkg/infra/models"
+	jira "github.com/ctreminiom/go-atlassian/v2/jira/v3"
+	jiramodels "github.com/ctreminiom/go-atlassian/v2/pkg/infra/models"
 	"github.com/iolave/jira-tickets-from-gh/internal/github"
 	"github.com/iolave/jira-tickets-from-gh/internal/helpers"
 	"github.com/iolave/jira-tickets-from-gh/internal/models"
@@ -130,11 +131,15 @@ func syncProject(args Cmd, config Config, projPos int, m *models.Models, gh *git
 		case models.FIELD_NAME_REPO:
 			fieldsIds.Repo = v.ID
 		case models.FIELD_NAME_EPIC:
-			epics, err = getProjectEpics(jc, projectCfg.Jira.ProjectKey)
+			var response *jiramodels.ResponseScheme
+			epics, response, err = getProjectEpics(jc, projectCfg.Jira.ProjectKey)
+			fmt.Println("[RESPONSE]", response.Bytes.String())
+
 			if err != nil {
 				log.WithFields(logrus.Fields{
-					"error":   err,
-					"project": projectCfg.Name,
+					"error":    err,
+					"project":  projectCfg.Name,
+					"response": response.Bytes.String(),
 				}).Errorln("failed to retrieve epics")
 			} else {
 				log.WithFields(logrus.Fields{
@@ -312,11 +317,13 @@ func syncProject(args Cmd, config Config, projPos int, m *models.Models, gh *git
 		for _, v := range fieldsResult.Data.Node.Fields.Nodes {
 			switch v.Name {
 			case models.FIELD_NAME_EPIC:
-				epics, err = getProjectEpics(jc, projectCfg.Jira.ProjectKey)
+				var response *jiramodels.ResponseScheme
+				epics, response, err = getProjectEpics(jc, projectCfg.Jira.ProjectKey)
 				if err != nil {
 					log.WithFields(logrus.Fields{
-						"error":   err,
-						"project": projectCfg.Name,
+						"error":    err,
+						"project":  projectCfg.Name,
+						"response": response.Bytes.String(),
 					}).Errorln("failed to retrieve epics")
 				} else {
 					log.WithFields(logrus.Fields{
@@ -376,10 +383,16 @@ func syncProject(args Cmd, config Config, projPos int, m *models.Models, gh *git
 			if ri.Status != nil && ri.JiraIssueType != nil {
 				return true
 			}
+
+			status := ""
+			if ri.Status != nil {
+				status = ri.Status.Name
+			}
+
 			log.WithFields(logrus.Fields{
-				"project":   projectCfg.Name,
-				"status":    ri.Status.Name,
-				"issueType": ri.JiraIssueType.Name,
+				"project": projectCfg.Name,
+				"status":  status,
+				"issue":   ri.JiraIssueType,
 			}).Infoln("github issue skipped cuz is not ready")
 			return false
 		})
@@ -761,10 +774,14 @@ func createJiraIssueFromGhIssueWithoutUrl(
 		summary = is.Title
 	}
 
+	b, err := json.Marshal(is)
+	fmt.Println("issue", string(b), err)
+
 	epicKey := ""
 	if is.Epic != nil {
 		for _, epic := range epics {
-			if epic.Title == *is.Epic {
+			fmt.Printf("[DEBUG] (INTERNAL EPIC: %s) (ISSUE EPIC: %s)\n", epic.Title, *is.Epic)
+			if strings.Trim(epic.Title, " ") == *is.Epic {
 				epicKey = epic.Key
 				break
 			}
@@ -780,6 +797,10 @@ func createJiraIssueFromGhIssueWithoutUrl(
 		Project: &jiramodels.ProjectScheme{Key: config.Projects[projPos].Jira.ProjectKey},
 		Summary: summary,
 	}}
+	b, err = json.Marshal(jiraIssue)
+	fmt.Println(string(b), err)
+
+	fmt.Printf("INFO: issue: NONE,\t parent_epic: %s,\t issue_name: %s\n", jiraIssue.Fields.Parent.Key, jiraIssue.Fields.Summary)
 	jiraIssueCustomFields := &jiramodels.CustomFields{}
 	if estimateField := config.Projects[projPos].Jira.EstimateField; estimateField != nil && is.Estimate != nil {
 		estimate := *is.Estimate
@@ -788,8 +809,10 @@ func createJiraIssueFromGhIssueWithoutUrl(
 	if assignee != nil {
 		jiraIssue.Fields.Assignee = &jiramodels.UserScheme{AccountID: *assignee}
 	}
-	result, _, err := jc.Issue.Create(context.Background(), jiraIssue, jiraIssueCustomFields)
+	result, response, err := jc.Issue.Create(context.Background(), jiraIssue, jiraIssueCustomFields)
 	if err != nil {
+		b, _ := json.Marshal(jiraIssue)
+		fmt.Printf("[DEBUG] FAILED TO CREATE JIRA ISSUE (STATUS: %d) (ERROR: %s) (BODY: %s) (REQ %s)\n", response.StatusCode, err.Error(), response.Bytes.String(), string(b))
 		return err
 	}
 
@@ -877,12 +900,12 @@ type epic struct {
 	Title string `json:"title"`
 }
 
-func getProjectEpics(jc *jira.Client, key string) (epics []epic, err error) {
+func getProjectEpics(jc *jira.Client, key string) (epics []epic, response *jiramodels.ResponseScheme, err error) {
 	ctx := context.TODO()
 	query := fmt.Sprintf(`project = %s AND issuetype = "Epic"`, key)
-	res, _, err := jc.Issue.Search.Get(ctx, query, nil, nil, 0, 10000, "")
+	res, response, err := jc.Issue.Search.SearchJQL(ctx, query, []string{"*all"}, nil, 5000, "")
 	if err != nil {
-		return nil, err
+		return nil, response, err
 	}
 
 	for _, v := range res.Issues {
@@ -892,5 +915,5 @@ func getProjectEpics(jc *jira.Client, key string) (epics []epic, err error) {
 		})
 	}
 
-	return epics, nil
+	return epics, response, nil
 }

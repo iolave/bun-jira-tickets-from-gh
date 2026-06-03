@@ -362,7 +362,7 @@ func (s *Issues) GetThoseWithDiff(projectId string, issues []RemoteIssue) (diff 
 			issue.Estimate = remoteIssue.Estimate.Num
 			issue.Repository = remoteIssue.Repository.Repository.Text
 			issue.Assignees = assignees
-			if &remoteIssue.Epic != nil {
+			if remoteIssue.Epic != nil {
 				issue.Epic = &remoteIssue.Epic.Name
 			}
 			diff = append(diff, Diff{
@@ -428,13 +428,15 @@ func (p *Issues) GetWithoutUrl(githubProjectId string) ([]*Issue, error) {
 		}
 		issue.Assignees = assignees
 
-		match, err := regexp.MatchString(`^https\:\/\/[a-zA-Z0-9]*\.atlassian\.net\/browse\/.*`, *issue.JiraURL)
-		if err != nil {
-			return nil, err
-		}
+		if issue.JiraURL != nil {
+			match, err := regexp.MatchString(`^https\:\/\/[a-zA-Z0-9]*\.atlassian\.net\/browse\/.*`, *issue.JiraURL)
+			if err != nil {
+				return nil, err
+			}
 
-		if match {
-			continue
+			if match {
+				continue
+			}
 		}
 
 		// uncomment when models is avaialbe within an issue

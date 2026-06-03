@@ -127,6 +127,7 @@ VERBOSE=false
 
 ### Build
 ```bash
+go mod vendor
 docker compose build
 ```
 

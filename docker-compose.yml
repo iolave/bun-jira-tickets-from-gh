@@ -1,7 +1,7 @@
 services:
   jira-tickets-from-gh:
     volumes:
-      - data:/home/app/data
+      - ./data:/home/app/data
     build:
       context: .
       dockerfile: ./Dockerfile
@@ -12,34 +12,29 @@ services:
     network_mode: host
     deploy:
       restart_policy:
-        condition: on-failure
-        delay: 5s
-        max_attempts: 3
-        window: 120s
+        condition: unless-stopped
       resources:
         limits:
           cpus: '0.5'
-          memory: 256M
+          memory: 512M
     environment:
       GITHUB_TOKEN: /run/secrets/github_token
-      JIRA_EMAIL: ${JIRA_EMAIL}
-      JIRA_TOKEN: /run/secrets/jira_token
+      JIRA_EMAIL: ${JIRA_EMAIL_bcilabs_mca}
+      JIRA_TOKEN: /run/secrets/jira_token_bcilabs_mca
       # Modify this and/or add more jira_token_{{project_name}}
       # secrets for multiple jira subdomains support
       # JIRA_TOKEN_{{project_name}}: /run/secrets/jira_token_{{project_name}}
       # JIRA_EMAIL_{{project_name}}: ${JIRA_EMAIL_{{project_name}}}
       VERBOSE: ${VERBOSE}
     secrets:
-      - jira_token
+      - jira_token_bcilabs_mca
       - github_token
 secrets:
-  jira_token:
-    environment: "JIRA_TOKEN"
+  #jira_token:
+  #  environment: "JIRA_TOKEN"
   # Modify this and/or add more jira_token_{{project_name}}
   # secrets for multiple jira subdomains support
-  # jira_token_{{project_name}}:
-  #   environment: "JIRA_TOKEN_{{project_name}}"
+  jira_token_bcilabs_mca:
+    environment: "JIRA_TOKEN_bcilabs_mca"
   github_token:
     environment: "GITHUB_TOKEN"
-volumes:
-  data:

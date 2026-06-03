@@ -13,9 +13,8 @@ if [ "${VERBOSE}" = "true" ]; then
 	VERBOSE_FLAG="--debug"
 fi
 
-export CGO_ENABLED=1
-go install ./cmd/jira-tickets-from-gh/jira-tickets-from-gh.go
-jira-tickets-from-gh ${VERBOSE_FLAG} sync \
+#go install ./cmd/jira-tickets-from-gh/jira-tickets-from-gh.go
+CGO_ENABLED=1 jira-tickets-from-gh ${VERBOSE_FLAG} sync \
 	--config=./config.yml
 #	--gh-token=${GH_TOKEN} \
 #	--gh-project-id=${GH_PROJECT_ID} \

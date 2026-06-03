@@ -1,14 +1,9 @@
-FROM golang:1.24rc1-bookworm
+FROM golang:1.25-bookworm
 
 WORKDIR /home/app
 
-ADD ./entrypoint.sh .
+ADD ./entrypoint.sh ./entrypoint.sh
 ENTRYPOINT sh ./entrypoint.sh
 
-ADD ./go.mod ./go.sum .
-RUN go mod download
-
-ADD ./cmd cmd
-ADD ./internal internal
-ADD ./config.yml .
-
+ADD . .
+RUN CGO_ENABLED=1 go install ./cmd/jira-tickets-from-gh/jira-tickets-from-gh.go
